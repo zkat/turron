@@ -1,7 +1,4 @@
-use surf::Client;
+mod errors;
+pub mod v3;
 
-#[derive(Debug)]
-struct NuGetClient {
-    key: String,
-    client: Client
-}
+pub use errors::NuGetApiError;
