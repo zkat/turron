@@ -1565,7 +1565,9 @@ dependencies = [
  "fern",
  "log",
  "ruget-cmd-ping",
+ "ruget-cmd-relist",
  "ruget-cmd-search",
+ "ruget-cmd-unlist",
  "ruget-command",
  "ruget-config",
  "ruget-diagnostics",
@@ -1588,6 +1590,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruget-cmd-relist"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "log",
+ "nuget-api",
+ "ruget-command",
+ "ruget-config",
+ "ruget-diagnostics",
+ "serde_json",
+ "thiserror",
+ "url",
+]
+
+[[package]]
 name = "ruget-cmd-search"
 version = "0.1.0"
 dependencies = [
@@ -1602,6 +1620,22 @@ dependencies = [
  "ruget-diagnostics",
  "serde_json",
  "term_size",
+ "url",
+]
+
+[[package]]
+name = "ruget-cmd-unlist"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "log",
+ "nuget-api",
+ "ruget-command",
+ "ruget-config",
+ "ruget-diagnostics",
+ "serde_json",
+ "thiserror",
  "url",
 ]
 

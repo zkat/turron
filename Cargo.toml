@@ -15,7 +15,9 @@ members = [
 [dependencies]
 # Commands
 ruget-cmd-ping = { path = "./commands/ruget-cmd-ping" }
+ruget-cmd-relist = { path = "./commands/ruget-cmd-relist" }
 ruget-cmd-search = { path = "./commands/ruget-cmd-search" }
+ruget-cmd-unlist = { path = "./commands/ruget-cmd-unlist" }
 
 # Workspace Deps
 ruget-command = { path = "./crates/ruget-command" }

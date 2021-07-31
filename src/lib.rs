@@ -9,7 +9,9 @@ use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
 use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
+use ruget_cmd_relist::RelistCmd;
 use ruget_cmd_search::SearchCmd;
+use ruget_cmd_unlist::UnlistCmd;
 
 #[derive(Debug, Clap)]
 #[clap(
@@ -36,6 +38,8 @@ pub struct RuGet {
     quiet: bool,
     #[clap(global = true, long, about = "Format output as JSON.")]
     json: bool,
+    #[clap(global = true, long, about = "NuGet API key for the targeted NuGet source.")]
+    api_key: Option<String>,
     #[clap(subcommand)]
     subcommand: RuGetCmd,
 }
@@ -112,12 +116,26 @@ pub enum RuGetCmd {
     )]
     Ping(PingCmd),
     #[clap(
+        about = "Relist a previously unlisted package version",
+        setting = clap::AppSettings::ColoredHelp,
+        setting = clap::AppSettings::DisableHelpSubcommand,
+        setting = clap::AppSettings::DeriveDisplayOrder,
+    )]
+    Relist(RelistCmd),
+    #[clap(
         about = "Search for packages",
         setting = clap::AppSettings::ColoredHelp,
         setting = clap::AppSettings::DisableHelpSubcommand,
         setting = clap::AppSettings::DeriveDisplayOrder,
     )]
     Search(SearchCmd),
+    #[clap(
+        about = "Unlist a package version",
+        setting = clap::AppSettings::ColoredHelp,
+        setting = clap::AppSettings::DisableHelpSubcommand,
+        setting = clap::AppSettings::DeriveDisplayOrder,
+    )]
+    Unlist(UnlistCmd),
 }
 
 #[async_trait]
@@ -126,7 +144,9 @@ impl RuGetCommand for RuGet {
         log::info!("Running command: {:#?}", self.subcommand);
         match self.subcommand {
             RuGetCmd::Ping(ping) => ping.execute().await,
+            RuGetCmd::Relist(relist) => relist.execute().await,
             RuGetCmd::Search(search) => search.execute().await,
+            RuGetCmd::Unlist(unlist) => unlist.execute().await,
         }
     }
 }
@@ -137,8 +157,14 @@ impl RuGetConfigLayer for RuGet {
             RuGetCmd::Ping(ref mut ping) => {
                 ping.layer_config(&args.subcommand_matches("ping").unwrap(), conf)
             }
+            RuGetCmd::Relist(ref mut relist) => {
+                relist.layer_config(&args.subcommand_matches("relist").unwrap(), conf)
+            }
             RuGetCmd::Search(ref mut search) => {
                 search.layer_config(&args.subcommand_matches("search").unwrap(), conf)
+            }
+            RuGetCmd::Unlist(ref mut unlist) => {
+                unlist.layer_config(&args.subcommand_matches("unlist").unwrap(), conf)
             }
         }
     }
