@@ -10,3 +10,4 @@ semver = { version = "1.0.4", features = ["serde"] }
 serde = "1.0.126"
 surf = "2.2.0"
 thiserror = "1.0.26"
+async-std = "1.9.0"

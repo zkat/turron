@@ -1,3 +1,4 @@
+use async_std::io::{Cursor, ReadExt};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 pub use surf::Body;
@@ -85,9 +86,19 @@ impl NuGetClient {
     }
 
     pub async fn push(self, body: Body) -> Result<(), NuGetApiError> {
-        // TODO: **THIS IS BROKEN**. Implementing this correctly is blocked by:
-        // https://github.com/http-rs/surf/issues/75
         use NuGetApiError::*;
+        let line1 = "--X-BOUNDARY\r\n".as_bytes();
+        let line2 =
+            "Content-Disposition: form-data; name=\"package\";filename=\"package.nupkg\"\r\n\r\n"
+                .as_bytes();
+        let line3 = "\r\n--X-BOUNDARY--\r\n".as_bytes();
+        let len = body.len().map(|len| len + line1.len() +line2.len() + line3.len());
+        let chain = Cursor::new(line1)
+            .chain(Cursor::new(line2))
+            .chain(body)
+            .chain(Cursor::new(line3));
+        let body = Body::from_reader(chain, len);
+
         let req = surf::post(
             &self
                 .endpoints
@@ -95,13 +106,15 @@ impl NuGetClient {
                 .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?,
         )
         .header("X-NuGet-ApiKey", &self.key.expect("API Key is required."))
-        .header("Content-Type", "multipart/form-data")
+        .header("Content-Type", "multipart/form-data; boundary=X-BOUNDARY")
         .body(body);
+
         let res = self
             .client
             .send(req)
             .await
             .map_err(NuGetApiError::SurfError)?;
+
         match res.status() {
             s if s.is_success() => Ok(()),
             StatusCode::BadRequest => Err(InvalidPackage),
