@@ -3,7 +3,6 @@ use std::path::PathBuf;
 
 use colored::Colorize;
 use thiserror::Error;
-use url::Url;
 
 pub use ruget_diagnostics_derive::Diagnostic;
 
@@ -14,7 +13,7 @@ pub struct DiagnosticError {
     pub category: DiagnosticCategory,
     pub label: String,
     pub advice: Option<String>,
-    pub meta: Option<Meta>,
+    pub meta: Option<DiagnosticMetadata>,
 }
 
 impl fmt::Debug for DiagnosticError {
@@ -25,8 +24,8 @@ impl fmt::Debug for DiagnosticError {
             use DiagnosticCategory::*;
             write!(f, "{}", self.label.red())?;
             if let Net = &self.category {
-                if let Some(Meta::Net { url: Some(ref url)}) = &self.meta {
-                        write!(f, " @ {}", format!("{}", url).cyan().underline())?;
+                if let Some(DiagnosticMetadata::Net { ref url }) = &self.meta {
+                    write!(f, " @ {}", url.cyan().underline())?;
                 }
             }
             write!(f, "\n\n")?;
@@ -57,9 +56,9 @@ where
     }
 }
 
-pub enum Meta {
+pub enum DiagnosticMetadata {
     Net {
-        url: Option<Url>,
+        url: String,
     },
     Fs {
         path: PathBuf,
@@ -73,7 +72,7 @@ pub enum Meta {
 }
 
 pub trait Explain {
-    fn meta(&self) -> Option<Meta> {
+    fn meta(&self) -> Option<DiagnosticMetadata> {
         None
     }
 }

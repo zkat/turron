@@ -9,20 +9,20 @@ use crate::errors::NuGetApiError;
 #[derive(Debug)]
 pub struct NuGetClient {
     client: Client,
-    key: Option<String>,
-    endpoints: NuGetEndpoints,
+    pub key: Option<String>,
+    pub endpoints: NuGetEndpoints,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct NuGetEndpoints {
-    package_content: Option<Url>,
-    publish: Option<Url>,
-    metadata: Option<Url>,
-    search: Option<Url>,
-    catalog: Option<Url>,
-    signatures: Option<Url>,
-    autocomplete: Option<Url>,
-    symbol_publish: Option<Url>,
+    pub package_content: Option<Url>,
+    pub publish: Option<Url>,
+    pub metadata: Option<Url>,
+    pub search: Option<Url>,
+    pub catalog: Option<Url>,
+    pub signatures: Option<Url>,
+    pub autocomplete: Option<Url>,
+    pub symbol_publish: Option<Url>,
 }
 
 impl NuGetEndpoints {
@@ -37,7 +37,7 @@ impl NuGetEndpoints {
         NuGetEndpoints {
             package_content: Self::find_endpoint(&resources, "PackageBaseAddress/3.0.0"),
             publish: Self::find_endpoint(&resources, "PackagePublish/2.0.0"),
-            metadata: Self::find_endpoint(&resources, "RegistrationBaseUrl/3.6.0"),
+            metadata: Self::find_endpoint(&resources, "RegistrationsBaseUrl/3.6.0"),
             search: Self::find_endpoint(&resources, "SearchQueryService/3.5.0"),
             catalog: Self::find_endpoint(&resources, "Catalog/3.0.0"),
             signatures: Self::find_endpoint(&resources, "RepositorySignatures/5.0.0"),
@@ -66,13 +66,16 @@ impl NuGetClient {
     pub async fn from_source(source: impl AsRef<str>) -> Result<Self, NuGetApiError> {
         let client = Client::new();
         let req = surf::get(source.as_ref());
-        let Index { resources, .. } = client
-            .send(req)
-            .await
-            .map_err(NuGetApiError::SurfError)?
-            .body_json()
-            .await
-            .map_err(NuGetApiError::SurfError)?;
+        let Index { resources, .. } = serde_json::from_slice(
+            &client
+                .send(req)
+                .await
+                .map_err(NuGetApiError::SurfError)?
+                .body_bytes()
+                .await
+                .map_err(NuGetApiError::SurfError)?,
+        )
+        .map_err(|_| NuGetApiError::InvalidSource(source.as_ref().into()))?;
         Ok(NuGetClient {
             client,
             key: None,
@@ -92,7 +95,9 @@ impl NuGetClient {
             "Content-Disposition: form-data; name=\"package\";filename=\"package.nupkg\"\r\n\r\n"
                 .as_bytes();
         let line3 = "\r\n--X-BOUNDARY--\r\n".as_bytes();
-        let len = body.len().map(|len| len + line1.len() +line2.len() + line3.len());
+        let len = body
+            .len()
+            .map(|len| len + line1.len() + line2.len() + line3.len());
         let chain = Cursor::new(line1)
             .chain(Cursor::new(line2))
             .chain(body)

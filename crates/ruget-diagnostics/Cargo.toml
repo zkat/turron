@@ -5,7 +5,6 @@ authors = ["Kat Marchán <kzm@zkat.tech>"]
 edition = "2018"
 
 [dependencies]
-url = "2.2.0"
 thiserror = "1.0.22"
 colored = "2.0.0"
 ruget-diagnostics-derive = { path = "../ruget-diagnostics-derive" }

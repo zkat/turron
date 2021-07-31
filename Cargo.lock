@@ -1147,6 +1147,7 @@ dependencies = [
  "async-std",
  "semver 1.0.4",
  "serde 1.0.126",
+ "serde_json",
  "surf",
  "thiserror",
 ]
@@ -1538,6 +1539,7 @@ dependencies = [
  "ruget-command",
  "ruget-config",
  "ruget-diagnostics",
+ "serde_json",
  "url",
 ]
 
@@ -1581,7 +1583,6 @@ dependencies = [
  "colored",
  "ruget-diagnostics-derive",
  "thiserror",
- "url",
 ]
 
 [[package]]
