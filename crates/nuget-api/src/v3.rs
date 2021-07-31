@@ -186,7 +186,7 @@ impl NuGetClient {
         use NuGetApiError::*;
         let mut url = self
             .endpoints
-            .publish
+            .search
             .ok_or_else(|| UnsupportedEndpoint("SearchQueryService/3.5.0".into()))?
             .clone();
         {
@@ -194,9 +194,6 @@ impl NuGetClient {
             pairs.append_pair("semVerLevel", "2.0.0");
             if let Some(query) = query.query {
                 pairs.append_pair("q", &query);
-            }
-            if let Some(skip) = query.skip {
-                pairs.append_pair("skip", &skip.to_string());
             }
             if let Some(skip) = query.skip {
                 pairs.append_pair("skip", &skip.to_string());
@@ -227,11 +224,11 @@ impl NuGetClient {
 
 #[derive(Debug)]
 pub struct SearchQuery {
-    query: Option<String>,
-    skip: Option<usize>,
-    take: Option<usize>,
-    prerelease: Option<bool>,
-    package_type: Option<String>,
+    pub query: Option<String>,
+    pub skip: Option<usize>,
+    pub take: Option<usize>,
+    pub prerelease: Option<bool>,
+    pub package_type: Option<String>,
 }
 
 impl SearchQuery {
@@ -248,15 +245,16 @@ impl SearchQuery {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchResponse {
-    total_hits: usize,
-    data: Vec<SearchResult>,
+    #[serde(rename = "totalHits")]
+    pub total_hits: usize,
+    pub data: Vec<SearchResult>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchResult {
-    id: String,
-    version: Version,
-    description: Option<String>,
+    pub id: String,
+    pub version: String,
+    pub description: Option<String>,
     // TODO: there's a lot more of these fields, but they're a pain to add.
     // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
 }

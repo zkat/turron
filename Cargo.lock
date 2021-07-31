@@ -626,6 +626,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
+name = "either"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+
+[[package]]
 name = "embed-resource"
 version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1004,6 +1010,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69ddb889f9d0d08a67338271fa9b62996bc788c7796a5c18cf057420aaed5eaf"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1141,6 +1156,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "nu-ansi-term"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cccf5ce0705f83c8afb776d00fe071ab994148efdd8e060909c6614b0fe740af"
+dependencies = [
+ "itertools",
+ "overload",
+ "winapi",
+]
+
+[[package]]
+name = "nu-table"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6691d9e3febb9ea2b2db9102f150330ec9f3dec1d8653f609dd16b2ca43b239e"
+dependencies = [
+ "nu-ansi-term",
+ "regex",
+ "unicode-width",
+]
+
+[[package]]
 name = "nuget-api"
 version = "0.1.0"
 dependencies = [
@@ -1225,6 +1262,12 @@ checksum = "53cdc5b785b7a58c5aad8216b3dfa114df64b0b06ae6e1501cef91df2fbdf8f9"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "overload"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "parking"
@@ -1522,6 +1565,7 @@ dependencies = [
  "fern",
  "log",
  "ruget-cmd-ping",
+ "ruget-cmd-search",
  "ruget-command",
  "ruget-config",
  "ruget-diagnostics",
@@ -1540,6 +1584,24 @@ dependencies = [
  "ruget-config",
  "ruget-diagnostics",
  "serde_json",
+ "url",
+]
+
+[[package]]
+name = "ruget-cmd-search"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "log",
+ "nu-ansi-term",
+ "nu-table",
+ "nuget-api",
+ "ruget-command",
+ "ruget-config",
+ "ruget-diagnostics",
+ "serde_json",
+ "term_size",
  "url",
 ]
 
@@ -1969,6 +2031,16 @@ dependencies = [
  "rand 0.8.4",
  "redox_syscall",
  "remove_dir_all",
+ "winapi",
+]
+
+[[package]]
+name = "term_size"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e4129646ca0ed8f45d09b929036bafad5377103edd06e50bf574b353d2b08d9"
+dependencies = [
+ "libc",
  "winapi",
 ]
 

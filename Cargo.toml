@@ -9,12 +9,13 @@ edition = "2018"
 members = [
     ".",
     "crates/*",
-    # "commands/*"
+    "commands/*"
 ]
 
 [dependencies]
 # Commands
 ruget-cmd-ping = { path = "./commands/ruget-cmd-ping" }
+ruget-cmd-search = { path = "./commands/ruget-cmd-search" }
 
 # Workspace Deps
 ruget-command = { path = "./crates/ruget-command" }

@@ -9,6 +9,7 @@ use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
 use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
+use ruget_cmd_search::SearchCmd;
 
 #[derive(Debug, Clap)]
 #[clap(
@@ -104,12 +105,19 @@ impl RuGet {
 #[derive(Debug, Clap)]
 pub enum RuGetCmd {
     #[clap(
-        about = "Ping the registry",
+        about = "Ping a source",
         setting = clap::AppSettings::ColoredHelp,
         setting = clap::AppSettings::DisableHelpSubcommand,
         setting = clap::AppSettings::DeriveDisplayOrder,
     )]
     Ping(PingCmd),
+    #[clap(
+        about = "Search for packages",
+        setting = clap::AppSettings::ColoredHelp,
+        setting = clap::AppSettings::DisableHelpSubcommand,
+        setting = clap::AppSettings::DeriveDisplayOrder,
+    )]
+    Search(SearchCmd),
 }
 
 #[async_trait]
@@ -118,6 +126,7 @@ impl RuGetCommand for RuGet {
         log::info!("Running command: {:#?}", self.subcommand);
         match self.subcommand {
             RuGetCmd::Ping(ping) => ping.execute().await,
+            RuGetCmd::Search(search) => search.execute().await,
         }
     }
 }
@@ -127,6 +136,9 @@ impl RuGetConfigLayer for RuGet {
         match self.subcommand {
             RuGetCmd::Ping(ref mut ping) => {
                 ping.layer_config(&args.subcommand_matches("ping").unwrap(), conf)
+            }
+            RuGetCmd::Search(ref mut search) => {
+                search.layer_config(&args.subcommand_matches("search").unwrap(), conf)
             }
         }
     }
