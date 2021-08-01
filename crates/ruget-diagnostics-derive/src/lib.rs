@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::Data;
 
-#[proc_macro_derive(Diagnostic, attributes(advice, category, label, ask))]
+#[proc_macro_derive(Diagnostic, attributes(help, label, ask))]
 pub fn diagnostics_macro_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
 
@@ -15,52 +15,6 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
     match ast.data {
         Data::Enum(enm) => {
             let variants = enm.variants;
-
-            let cat_arms = variants.iter().map(|variant| {
-                let id = &variant.ident;
-
-                let cat = variant.attrs.iter().find_map(|a| {
-                    if a.path.is_ident("category") {
-                        let id: syn::Ident = a.parse_args().unwrap();
-                        Some(id)
-                    } else {
-                        None
-                    }
-                });
-
-                let has_ask_attr: Vec<bool> = variant
-                    .fields
-                    .iter()
-                    .map(|field| field.attrs.iter().any(|attr| attr.path.is_ident("ask")))
-                    .collect();
-                let should_ask = has_ask_attr.contains(&true);
-
-                match variant.fields {
-                    syn::Fields::Unit => cat.map(|c| {
-                        quote! {
-                            #id => DiagnosticCategory::#c,
-                        }
-                    }),
-                    syn::Fields::Named(_) => cat.map(|c| {
-                        quote! {
-                            #id {..} => DiagnosticCategory::#c,
-                        }
-                    }),
-                    syn::Fields::Unnamed(_) => {
-                        if should_ask {
-                            return Some(quote! {
-                                #id(err) => err.category(),
-                            });
-                        }
-
-                        cat.map(|c| {
-                            quote! {
-                                #id(..) => DiagnosticCategory::#c,
-                            }
-                        })
-                    }
-                }
-            });
 
             let label_arms = variants.iter().map(|variant| {
                 let id = &variant.ident;
@@ -108,11 +62,11 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
                 }
             });
 
-            let advice_arms = variants.iter().map(|variant| {
+            let help_arms = variants.iter().map(|variant| {
                 let id = &variant.ident;
 
-                let advices = variant.attrs.iter().find_map(|a| {
-                    if a.path.is_ident("advice") {
+                let helps = variant.attrs.iter().find_map(|a| {
+                    if a.path.is_ident("help") {
                         let string: syn::LitStr = a.parse_args().unwrap();
                         Some(string.value())
                     } else {
@@ -128,12 +82,12 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
                 let should_ask = has_ask_attr.contains(&true);
 
                 match variant.fields {
-                    syn::Fields::Unit => advices.map(|a| {
+                    syn::Fields::Unit => helps.map(|a| {
                         quote! {
                             #id => Some(#a.into()),
                         }
                     }),
-                    syn::Fields::Named(_) => advices.map(|a| {
+                    syn::Fields::Named(_) => helps.map(|a| {
                         quote! {
                             #id {..} => Some(#a.into()),
                         }
@@ -141,11 +95,11 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
                     syn::Fields::Unnamed(_) => {
                         if should_ask {
                             return Some(quote! {
-                                #id(err) => err.advice(),
+                                #id(err) => err.help(),
                             });
                         };
 
-                        advices.map(|a| {
+                        helps.map(|a| {
                             quote! {
                                 #id(..) => Some(#a.into()),
                             }
@@ -156,14 +110,6 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
 
             let gen = quote! {
                 impl Diagnostic for #name {
-                    fn category(&self) -> DiagnosticCategory {
-                        use #name::*;
-                        match self {
-                             #(#cat_arms)*
-                            _ => DiagnosticCategory::Misc
-                        }
-                    }
-
                     fn label(&self) -> String {
                         use #name::*;
                         match self {
@@ -172,10 +118,10 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
                         }
                     }
 
-                    fn advice(&self) -> Option<String> {
+                    fn help(&self) -> Option<String> {
                         use #name::*;
                         match self {
-                            #(#advice_arms)*
+                            #(#help_arms)*
                             _ => None
                         }
                     }
@@ -207,11 +153,11 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
                     },
                 );
 
-            let advice = ast
+            let help = ast
                 .attrs
                 .iter()
                 .find_map(|a| {
-                    if a.path.is_ident("advice") {
+                    if a.path.is_ident("help") {
                         let string: syn::LitStr = a.parse_args().unwrap();
                         Some(string.value())
                     } else {
@@ -229,40 +175,14 @@ fn impl_diagnostics_macro(ast: syn::DeriveInput) -> TokenStream {
                     },
                 );
 
-            let cat = ast
-                .attrs
-                .iter()
-                .find_map(|a| {
-                    if a.path.is_ident("category") {
-                        let string: syn::Ident = a.parse_args().unwrap();
-                        Some(string)
-                    } else {
-                        None
-                    }
-                })
-                .map_or(
-                    quote! {
-                        DiagnosticCategory::Misc
-                    },
-                    |cat| {
-                        quote! {
-                            DiagnosticCategory::#cat
-                        }
-                    },
-                );
-
             let gen = quote! {
                 impl Diagnostic for #name {
-                    fn category(&self) -> DiagnosticCategory {
-                        #cat
-                    }
-
                     fn label(&self) -> String {
                         #label
                     }
 
-                    fn advice(&self) -> Option<String> {
-                        #advice
+                    fn help(&self) -> Option<String> {
+                        #help
                     }
                 }
             };

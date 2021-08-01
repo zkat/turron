@@ -10,9 +10,8 @@ pub use ruget_diagnostics_derive::Diagnostic;
 #[error("{:?}", self)]
 pub struct DiagnosticError {
     pub error: Box<dyn std::error::Error + Send + Sync>,
-    pub category: DiagnosticCategory,
     pub label: String,
-    pub advice: Option<String>,
+    pub help: Option<String>,
     pub meta: Option<DiagnosticMetadata>,
 }
 
@@ -21,18 +20,31 @@ impl fmt::Debug for DiagnosticError {
         if f.alternate() {
             return fmt::Debug::fmt(&self.error, f);
         } else {
-            use DiagnosticCategory::*;
             write!(f, "{}", self.label.red())?;
-            if let Net = &self.category {
-                if let Some(DiagnosticMetadata::Net { ref url }) = &self.meta {
+            match &self.meta {
+                Some(DiagnosticMetadata::Net { ref url }) => {
                     write!(f, " @ {}", url.cyan().underline())?;
                 }
+                Some(DiagnosticMetadata::Fs { ref path }) => {
+                    write!(f, " @ {}", path.to_string_lossy().cyan().underline())?;
+                }
+                Some(DiagnosticMetadata::Parse {
+                    input: _input,
+                    row,
+                    col,
+                    path
+                }) => {
+                    write!(f, " - line: {}, col: {}", row.to_string().green(), col.to_string().green())?;
+                    if let Some(path) = path {
+                        write!(f, " @ {}", path.to_string_lossy().cyan().underline())?;
+                    }
+                }
+                None => {}
             }
             write!(f, "\n\n")?;
             write!(f, "{}", self.error)?;
-            if let Some(advice) = &self.advice {
-                write!(f, "\n\n{}", "help".yellow())?;
-                write!(f, ": {}", advice)?;
+            if let Some(help) = &self.help {
+                write!(f, "\n\n{}: {}", "help".yellow(), help)?;
             }
         }
         Ok(())
@@ -47,10 +59,9 @@ where
 {
     fn from(error: E) -> Self {
         Self {
-            category: error.category(),
             meta: error.meta(),
             label: error.label(),
-            advice: error.advice(),
+            help: error.help(),
             error: Box::new(error),
         }
     }
@@ -71,32 +82,19 @@ pub enum DiagnosticMetadata {
     },
 }
 
-pub trait Explain {
+pub trait GetMetadata {
     fn meta(&self) -> Option<DiagnosticMetadata> {
         None
     }
 }
 
-pub trait Diagnostic: std::error::Error + Send + Sync + Explain + 'static {
-    fn category(&self) -> DiagnosticCategory;
+pub trait Diagnostic: std::error::Error + Send + Sync + GetMetadata + 'static {
     fn label(&self) -> String;
-    fn advice(&self) -> Option<String>;
+    fn help(&self) -> Option<String>;
 }
 
 // This is needed so Box<dyn Diagnostic> is correctly treated as an Error.
 impl std::error::Error for Box<dyn Diagnostic> {}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum DiagnosticCategory {
-    /// ruget::misc
-    Misc,
-    /// ruget::net
-    Net,
-    /// ruget::fs
-    Fs,
-    /// ruget::parse
-    Parse,
-}
 
 pub trait IntoDiagnostic<T, E> {
     fn into_diagnostic(self, subpath: impl AsRef<str>) -> std::result::Result<T, DiagnosticError>;
@@ -105,10 +103,9 @@ pub trait IntoDiagnostic<T, E> {
 impl<T, E: std::error::Error + Send + Sync + 'static> IntoDiagnostic<T, E> for Result<T, E> {
     fn into_diagnostic(self, label: impl AsRef<str>) -> Result<T, DiagnosticError> {
         self.map_err(|e| DiagnosticError {
-            category: DiagnosticCategory::Misc,
             error: Box::new(e),
             label: label.as_ref().into(),
-            advice: None,
+            help: None,
             meta: None,
         })
     }

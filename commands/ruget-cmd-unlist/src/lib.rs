@@ -3,11 +3,8 @@ use clap::Clap;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::{
-    DiagnosticCategory, DiagnosticError, DiagnosticResult as Result,
-};
+use ruget_diagnostics::DiagnosticResult as Result;
 use thiserror::Error;
-use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct UnlistCmd {
@@ -20,7 +17,7 @@ pub struct UnlistCmd {
         default_value = "https://api.nuget.org/v3/index.json",
         long
     )]
-    source: Url,
+    source: String,
     #[clap(from_global)]
     loglevel: log::LevelFilter,
     #[clap(from_global)]
@@ -36,13 +33,7 @@ impl RuGetCommand for UnlistCmd {
     async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone())
             .await?
-            .with_key(self.api_key.clone().ok_or_else(|| DiagnosticError {
-                category: DiagnosticCategory::Misc,
-                error: Box::new(UnlistError::MissingApiKey),
-                label: "ruget::unlist::apikey".into(),
-                advice: Some("Make sure an `api_key` is in your config file, or pass one with `--api-key <key>`".into()),
-                meta: None,
-            })?);
+            .with_key(self.api_key);
         client.unlist(self.id.clone(), self.version.clone()).await?;
         if !self.quiet {
             println!("{}@{} has been unlisted.", self.id, self.version);

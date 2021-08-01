@@ -3,9 +3,7 @@ use clap::Clap;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::{
-    DiagnosticCategory, DiagnosticError, DiagnosticResult as Result,
-};
+use ruget_diagnostics::DiagnosticResult as Result;
 use thiserror::Error;
 use url::Url;
 
@@ -35,13 +33,8 @@ pub struct RelistCmd {
 impl RuGetCommand for RelistCmd {
     async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone())
-            .await?.with_key(self.api_key.clone().ok_or_else(|| DiagnosticError {
-                category: DiagnosticCategory::Misc,
-                error: Box::new(UnlistError::MissingApiKey),
-                label: "ruget::relist::apikey".into(),
-                advice: Some("Make sure an `api_key` is in your config file, or pass one with `--api-key <key>`".into()),
-                meta: None,
-            })?);
+            .await?
+            .with_key(self.api_key);
         client.unlist(self.id.clone(), self.version.clone()).await?;
         if !self.quiet {
             println!("{}@{} has been unlisted.", self.id, self.version);

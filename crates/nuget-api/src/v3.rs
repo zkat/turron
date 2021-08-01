@@ -65,15 +65,16 @@ pub struct IndexResource {
 impl NuGetClient {
     pub async fn from_source(source: impl AsRef<str>) -> Result<Self, NuGetApiError> {
         let client = Client::new();
-        let req = surf::get(source.as_ref());
+        let url: Url = source.as_ref().parse().map_err(|_| NuGetApiError::InvalidSource(source.as_ref().into()))?;
+        let req = surf::get(&url);
         let Index { resources, .. } = serde_json::from_slice(
             &client
                 .send(req)
                 .await
-                .map_err(NuGetApiError::SurfError)?
+                .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?
                 .body_bytes()
                 .await
-                .map_err(NuGetApiError::SurfError)?,
+                .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?,
         )
         .map_err(|_| NuGetApiError::InvalidSource(source.as_ref().into()))?;
         Ok(NuGetClient {
@@ -83,8 +84,12 @@ impl NuGetClient {
         })
     }
 
-    pub fn with_key(mut self, key: impl AsRef<str>) -> Self {
-        self.key = Some(key.as_ref().to_string());
+    pub fn get_key(&self) -> Result<String, NuGetApiError> {
+        self.key.clone().ok_or(NuGetApiError::NeedsApiKey)
+    }
+
+    pub fn with_key(mut self, key: Option<impl AsRef<str>>) -> Self {
+        self.key = key.map(|k| k.as_ref().into());
         self
     }
 
@@ -104,21 +109,21 @@ impl NuGetClient {
             .chain(Cursor::new(line3));
         let body = Body::from_reader(chain, len);
 
-        let req = surf::post(
-            &self
-                .endpoints
-                .publish
-                .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?,
-        )
-        .header("X-NuGet-ApiKey", &self.key.expect("API Key is required."))
-        .header("Content-Type", "multipart/form-data; boundary=X-BOUNDARY")
-        .body(body);
+        let url = self
+            .endpoints
+            .publish
+            .clone()
+            .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?;
+        let req = surf::post(&url)
+            .header("X-NuGet-ApiKey", self.get_key()?)
+            .header("Content-Type", "multipart/form-data; boundary=X-BOUNDARY")
+            .body(body);
 
         let res = self
             .client
             .send(req)
             .await
-            .map_err(NuGetApiError::SurfError)?;
+            .map_err(|e| NuGetApiError::SurfError(e, url.into()))?;
 
         match res.status() {
             s if s.is_success() => Ok(()),
@@ -134,20 +139,20 @@ impl NuGetClient {
         version: impl AsRef<str>,
     ) -> Result<(), NuGetApiError> {
         use NuGetApiError::*;
-        let req = surf::delete(
-            &self
-                .endpoints
-                .publish
-                .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?
-                .join(package_id.as_ref())?
-                .join(version.as_ref())?,
-        )
-        .header("X-NuGet-ApiKey", &self.key.expect("API Key is required."));
+        let url = self
+            .endpoints
+            .publish
+            .clone()
+            .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?;
+
+        let req = surf::delete(url.join(package_id.as_ref())?.join(version.as_ref())?)
+            .header("X-NuGet-ApiKey", self.get_key()?);
+
         let res = self
             .client
             .send(req)
             .await
-            .map_err(NuGetApiError::SurfError)?;
+            .map_err(|e| NuGetApiError::SurfError(e, url.into()))?;
         match res.status() {
             StatusCode::NoContent => Ok(()),
             StatusCode::NotFound => Err(PackageNotFound),
@@ -161,20 +166,21 @@ impl NuGetClient {
         version: impl AsRef<str>,
     ) -> Result<(), NuGetApiError> {
         use NuGetApiError::*;
-        let req = surf::post(
-            &self
-                .endpoints
-                .publish
-                .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?
-                .join(package_id.as_ref())?
-                .join(version.as_ref())?,
-        )
-        .header("X-NuGet-ApiKey", &self.key.expect("API Key is required."));
+        let url = self
+            .endpoints
+            .publish
+            .clone()
+            .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?;
+
+        let req = surf::post(url.join(package_id.as_ref())?.join(version.as_ref())?)
+            .header("X-NuGet-ApiKey", self.get_key()?);
+
         let res = self
             .client
             .send(req)
             .await
-            .map_err(NuGetApiError::SurfError)?;
+            .map_err(|e| NuGetApiError::SurfError(e, url.into()))?;
+
         match res.status() {
             StatusCode::Ok => Ok(()),
             StatusCode::NotFound => Err(PackageNotFound),
@@ -208,14 +214,17 @@ impl NuGetClient {
                 pairs.append_pair("packageType", &package_type);
             }
         }
-        let req = surf::get(url);
+
+        let req = surf::get(&url);
+
         let mut res = self
             .client
             .send(req)
             .await
-            .map_err(NuGetApiError::SurfError)?;
+            .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+
         match res.status() {
-            StatusCode::Ok => Ok(res.body_json().await.map_err(NuGetApiError::SurfError)?),
+            StatusCode::Ok => Ok(res.body_json().await.map_err(|e| NuGetApiError::SurfError(e, url.into()))?),
             StatusCode::NotFound => Err(PackageNotFound),
             _ => Err(BadResponse),
         }

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use ruget_diagnostics::{Diagnostic, DiagnosticCategory, DiagnosticResult as Result, Explain};
+use ruget_diagnostics::{Diagnostic, DiagnosticResult as Result, GetMetadata};
 use thiserror::Error;
 
 pub use ruget_config_derive::*;
@@ -25,7 +25,7 @@ pub enum RuGetConfigError {
     ConfigParseError(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl Explain for RuGetConfigError {}
+impl GetMetadata for RuGetConfigError {}
 
 pub struct RuGetConfigOptions {
     global: bool,

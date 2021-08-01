@@ -1,19 +1,17 @@
 use ruget_diagnostics::Diagnostic;
-use ruget_diagnostics::DiagnosticCategory;
-use ruget_diagnostics::Explain;
+use ruget_diagnostics::GetMetadata;
 use thiserror::Error;
 
 #[derive(Diagnostic, Debug, Eq, PartialEq, Error)]
 #[error("Colored struct.")]
 #[label("color::struct")]
-#[advice("Color.")]
-#[category(Misc)]
+#[help("Color.")]
 pub struct Color {
     input: Option<String>,
     field: i32,
 }
 
-impl Explain for Color {}
+impl GetMetadata for Color {}
 
 #[test]
 fn it_works() {
@@ -22,5 +20,5 @@ fn it_works() {
         input: Some("lol".into()),
     };
     assert_eq!("color::struct", clr.label());
-    assert_eq!("Color.", clr.advice().unwrap());
+    assert_eq!("Color.", clr.help().unwrap());
 }

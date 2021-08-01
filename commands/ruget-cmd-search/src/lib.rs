@@ -7,7 +7,6 @@ use nuget_api::v3::{NuGetClient, SearchQuery};
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
 use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
-use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {
@@ -18,7 +17,7 @@ pub struct SearchCmd {
         default_value = "https://api.nuget.org/v3/index.json",
         long
     )]
-    source: Url,
+    source: String,
     #[clap(from_global)]
     loglevel: log::LevelFilter,
     #[clap(from_global)]
