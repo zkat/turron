@@ -14,8 +14,9 @@ use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {
-    #[clap(about = "Search query")]
-    query: String,
+    #[clap(about = "Search query", multiple = true)]
+    #[ruget_config(ignore)]
+    query: Vec<String>,
     #[clap(
         about = "Source to search.",
         default_value = "https://api.nuget.org/v3/index.json",
@@ -53,7 +54,7 @@ impl RuGetCommand for SearchCmd {
                 })
             })?;
         let query = SearchQuery {
-            query: Some(self.query),
+            query: Some(self.query.join(" ")),
             skip: self.skip,
             take: self.take,
             prerelease: self.prerelease,

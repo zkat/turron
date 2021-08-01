@@ -38,7 +38,7 @@ pub struct RuGet {
     quiet: bool,
     #[clap(global = true, long, about = "Format output as JSON.")]
     json: bool,
-    #[clap(global = true, long, about = "NuGet API key for the targeted NuGet source.")]
+    #[clap(global = true, long, short = 'k', about = "NuGet API key for the targeted NuGet source.")]
     api_key: Option<String>,
     #[clap(subcommand)]
     subcommand: RuGetCmd,
