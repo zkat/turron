@@ -15,7 +15,6 @@ use url::Url;
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {
     #[clap(about = "Search query", multiple = true)]
-    #[ruget_config(ignore)]
     query: Vec<String>,
     #[clap(
         about = "Source to search.",
