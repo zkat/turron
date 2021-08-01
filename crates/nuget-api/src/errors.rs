@@ -1,4 +1,4 @@
-use ruget_diagnostics::{Diagnostic, DiagnosticMetadata, GetMetadata};
+use thisdiagnostic::{Diagnostic, DiagnosticMetadata, GetMetadata};
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
@@ -10,7 +10,9 @@ pub enum NuGetApiError {
 
     /// Source does not seem to be a valid v3 source.
     #[label("ruget::api::invalid_source")]
-    #[help("Are you sure this is a valid NuGet source? Example: https://api.nuget.org/v3/index.json")]
+    #[help(
+        "Are you sure this is a valid NuGet source? Example: https://api.nuget.org/v3/index.json"
+    )]
     #[error("Source does not appear to be a valid NuGet API v3 source.")]
     InvalidSource(String),
 
@@ -60,15 +62,9 @@ impl GetMetadata for NuGetApiError {
     fn meta(&self) -> Option<DiagnosticMetadata> {
         use NuGetApiError::*;
         match self {
-            SurfError(_, url) => {
-                Some(DiagnosticMetadata::Net { url: url.clone() })
-            }
-            InvalidSource(url) => {
-                Some(DiagnosticMetadata::Net { url: url.clone() })
-            }
-            UnsupportedEndpoint(url) => {
-                Some(DiagnosticMetadata::Net { url: url.clone() })
-            }
+            SurfError(_, url) => Some(DiagnosticMetadata::Net { url: url.clone() }),
+            InvalidSource(url) => Some(DiagnosticMetadata::Net { url: url.clone() }),
+            UnsupportedEndpoint(url) => Some(DiagnosticMetadata::Net { url: url.clone() }),
             _ => None,
         }
     }

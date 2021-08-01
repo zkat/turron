@@ -22,7 +22,7 @@ ruget-cmd-unlist = { path = "./commands/ruget-cmd-unlist" }
 # Workspace Deps
 ruget-command = { path = "./crates/ruget-command" }
 ruget-config = { path = "./crates/ruget-config" }
-ruget-diagnostics = { path = "./crates/ruget-diagnostics" }
+thisdiagnostic = { path = "./crates/thisdiagnostic" }
 
 # Regular deps
 async-std = { version = "1.6.2", features = ["attributes", "unstable"] }

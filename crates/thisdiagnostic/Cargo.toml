@@ -1,5 +1,5 @@
 [package]
-name = "ruget-diagnostics"
+name = "thisdiagnostic"
 version = "0.1.0"
 authors = ["Kat Marchán <kzm@zkat.tech>"]
 edition = "2018"
@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 thiserror = "1.0.22"
 colored = "2.0.0"
-ruget-diagnostics-derive = { path = "../ruget-diagnostics-derive" }
+thisdiagnostic-derive = { path = "../thisdiagnostic-derive" }

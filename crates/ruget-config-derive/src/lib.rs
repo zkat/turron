@@ -115,7 +115,7 @@ impl ToTokens for RuGetConfigLayer {
 
                 use std::str::FromStr;
 
-                use ruget_diagnostics::{DiagnosticError, DiagnosticResult as Result};
+                use thisdiagnostic::{DiagnosticError, DiagnosticResult as Result};
                 use clap::ArgMatches;
                 use ruget_config::{RuGetConfig, RuGetConfigError, RuGetConfigLayer};
 

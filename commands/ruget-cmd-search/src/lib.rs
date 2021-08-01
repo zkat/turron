@@ -6,7 +6,7 @@ use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, SearchQuery};
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
+use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {
@@ -52,7 +52,8 @@ impl RuGetCommand for SearchCmd {
         if !self.quiet && self.json {
             println!(
                 "{}",
-                serde_json::to_string_pretty(&response).into_diagnostic("ruget::search::serialize")?
+                serde_json::to_string_pretty(&response)
+                    .into_diagnostic("ruget::search::serialize")?
             );
         } else if !self.quiet {
             let headers = vec!["id", "version", "description"]

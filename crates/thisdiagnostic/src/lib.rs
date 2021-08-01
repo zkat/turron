@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use colored::Colorize;
 use thiserror::Error;
 
-pub use ruget_diagnostics_derive::Diagnostic;
+pub use thisdiagnostic_derive::Diagnostic;
 
 #[derive(Error)]
 #[error("{:?}", self)]
@@ -32,9 +32,14 @@ impl fmt::Debug for DiagnosticError {
                     input: _input,
                     row,
                     col,
-                    path
+                    path,
                 }) => {
-                    write!(f, " - line: {}, col: {}", row.to_string().green(), col.to_string().green())?;
+                    write!(
+                        f,
+                        " - line: {}, col: {}",
+                        row.to_string().green(),
+                        col.to_string().green()
+                    )?;
                     if let Some(path) = path {
                         write!(f, " @ {}", path.to_string_lossy().cyan().underline())?;
                     }

@@ -5,8 +5,8 @@ use clap::Clap;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
 use serde_json::json;
+use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]

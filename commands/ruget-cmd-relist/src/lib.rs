@@ -3,7 +3,7 @@ use clap::Clap;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::DiagnosticResult as Result;
+use thisdiagnostic::DiagnosticResult as Result;
 use thiserror::Error;
 use url::Url;
 

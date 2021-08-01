@@ -8,7 +8,7 @@ edition = "2018"
 nuget-api = { path = "../../crates/nuget-api" }
 ruget-command = { path = "../../crates/ruget-command" }
 ruget-config = { path = "../../crates/ruget-config" }
-ruget-diagnostics  = { path = "../../crates/ruget-diagnostics" }
+thisdiagnostic = { path = "../../crates/thisdiagnostic" }
 
 clap = { git = "https://github.com/zkat/clap" }
 url = "2.1.0"

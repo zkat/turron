@@ -1,5 +1,5 @@
 use ruget::RuGet;
-use ruget_diagnostics::DiagnosticResult;
+use thisdiagnostic::DiagnosticResult;
 
 #[async_std::main]
 async fn main() -> DiagnosticResult<()> {

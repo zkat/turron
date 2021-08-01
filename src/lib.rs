@@ -6,7 +6,7 @@ use clap::{ArgMatches, Clap, FromArgMatches, IntoApp};
 use directories::ProjectDirs;
 use ruget_command::RuGetCommand;
 use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
-use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
+use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_relist::RelistCmd;
@@ -38,7 +38,12 @@ pub struct RuGet {
     quiet: bool,
     #[clap(global = true, long, about = "Format output as JSON.")]
     json: bool,
-    #[clap(global = true, long, short = 'k', about = "NuGet API key for the targeted NuGet source.")]
+    #[clap(
+        global = true,
+        long,
+        short = 'k',
+        about = "NuGet API key for the targeted NuGet source."
+    )]
     api_key: Option<String>,
     #[clap(subcommand)]
     subcommand: RuGetCmd,

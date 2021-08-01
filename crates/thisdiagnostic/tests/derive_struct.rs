@@ -1,5 +1,5 @@
-use ruget_diagnostics::Diagnostic;
-use ruget_diagnostics::GetMetadata;
+use thisdiagnostic::Diagnostic;
+use thisdiagnostic::GetMetadata;
 use thiserror::Error;
 
 #[derive(Diagnostic, Debug, Eq, PartialEq, Error)]

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use ruget_diagnostics::{Diagnostic, DiagnosticResult as Result, GetMetadata};
+use thisdiagnostic::{Diagnostic, DiagnosticResult as Result, GetMetadata};
 use thiserror::Error;
 
 pub use ruget_config_derive::*;

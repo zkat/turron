@@ -5,6 +5,6 @@ authors = ["Kat Marchán <kzm@zkat.tech>"]
 edition = "2018"
 
 [dependencies]
-ruget-diagnostics = { path = "../ruget-diagnostics" }
+thisdiagnostic = { path = "../thisdiagnostic" }
 
 async-trait = "0.1.19"
