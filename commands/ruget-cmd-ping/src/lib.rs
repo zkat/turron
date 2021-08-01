@@ -5,10 +5,7 @@ use clap::Clap;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::{
-    DiagnosticCategory, DiagnosticError, DiagnosticMetadata, DiagnosticResult as Result,
-    IntoDiagnostic,
-};
+use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
 use serde_json::json;
 use url::Url;
 
@@ -35,17 +32,7 @@ impl RuGetCommand for PingCmd {
         if !self.quiet && !self.json {
             eprintln!("ping: {}", self.source);
         }
-        let client = NuGetClient::from_source(self.source.clone())
-            .await
-            .map_err(|e| DiagnosticError {
-                category: DiagnosticCategory::Net,
-                error: Box::new(e),
-                label: "ruget::ping::badsource".into(),
-                advice: Some("Are you sure this is a valid NuGet source? Example: https://api.nuget.org/v3/index.json".into()),
-                meta: Some(DiagnosticMetadata::Net {
-                    url: self.source.to_string(),
-                })
-            })?;
+        let client = NuGetClient::from_source(self.source.clone()).await?;
         let time = start.elapsed().as_micros() as f32 / 1000.0;
         if !self.quiet && self.json {
             let output = serde_json::to_string_pretty(&json!({
@@ -54,7 +41,7 @@ impl RuGetCommand for PingCmd {
                 "endpoints": client.endpoints,
             }))
             .into_diagnostic("ruget::ping::serialize")?;
-                println!("{}", output);
+            println!("{}", output);
         }
         if !self.quiet && !self.json {
             eprintln!("pong: {}ms", time);

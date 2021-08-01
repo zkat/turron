@@ -6,10 +6,7 @@ use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, SearchQuery};
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use ruget_diagnostics::{
-    DiagnosticCategory, DiagnosticError, DiagnosticMetadata, DiagnosticResult as Result,
-    IntoDiagnostic,
-};
+use ruget_diagnostics::{DiagnosticResult as Result, IntoDiagnostic};
 use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -41,17 +38,8 @@ pub struct SearchCmd {
 #[async_trait]
 impl RuGetCommand for SearchCmd {
     async fn execute(self) -> Result<()> {
-        let client = NuGetClient::from_source(self.source.clone())
-            .await
-            .map_err(|e| DiagnosticError {
-                category: DiagnosticCategory::Net,
-                error: Box::new(e),
-                label: "ruget::api::badsource".into(),
-                advice: Some("Are you sure this is a valid NuGet source? Example: https://api.nuget.org/v3/index.json".into()),
-                meta: Some(DiagnosticMetadata::Net {
-                    url: self.source.to_string(),
-                })
-            })?;
+        let client = NuGetClient::from_source(self.source.clone()).await?;
+
         let query = SearchQuery {
             query: Some(self.query.join(" ")),
             skip: self.skip,
@@ -59,14 +47,13 @@ impl RuGetCommand for SearchCmd {
             prerelease: self.prerelease,
             package_type: self.package_type,
         };
-        let response = client
-            .search(query)
-            .await
-            .into_diagnostic("ruget::search::query")?;
+
+        let response = client.search(query).await?;
+
         if !self.quiet && self.json {
             println!(
                 "{}",
-                serde_json::to_string_pretty(&response).into_diagnostic("ruget::search::json")?
+                serde_json::to_string_pretty(&response).into_diagnostic("ruget::search::serialize")?
             );
         } else if !self.quiet {
             let headers = vec!["id", "version", "description"]
