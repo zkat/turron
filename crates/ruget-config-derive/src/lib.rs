@@ -51,6 +51,14 @@ fn ruget_ignored(attr: &syn::Attribute) -> bool {
                 return p.get_ident().unwrap() == "ignore";
             }
         }
+        return meta_list.path.get_ident().unwrap() == "clap"
+            && !meta_list.nested.iter().any(|n| match n {
+                syn::NestedMeta::Meta(syn::Meta::NameValue(nv)) => {
+                    let path = nv.path.get_ident().unwrap();
+                    path == "long" || path == "short"
+                }
+                _ => false,
+            });
     }
     false
 }
