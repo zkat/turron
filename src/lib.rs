@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use clap::{ArgMatches, Clap, FromArgMatches, IntoApp};
 use directories::ProjectDirs;
 use ruget_command::RuGetCommand;
-use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_config::{RuGetConfig, RuGetConfigError, RuGetConfigLayer, RuGetConfigOptions};
+use thisdiagnostic::{BoxDiagnostic, DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_relist::RelistCmd;
@@ -91,7 +91,8 @@ impl RuGet {
         let cfg = if let Some(file) = &ruget.config {
             RuGetConfigOptions::new()
                 .global_config_file(Some(file.clone()))
-                .load()?
+                .load()
+                .box_diagnostic()?
         } else {
             RuGetConfigOptions::new()
                 .global_config_file(
@@ -99,15 +100,26 @@ impl RuGet {
                         .map(|d| d.config_dir().to_owned().join("rugetrc.toml")),
                 )
                 .pkg_root(ruget.root.clone())
-                .load()?
+                .load()
+                .box_diagnostic()?
         };
-        ruget.layer_config(&matches, &cfg)?;
+        ruget.layer_config(&matches, &cfg).box_diagnostic()?;
         ruget
             .setup_logging()
             .into_diagnostic("ruget::load::logging")?;
         ruget.execute().await?;
         log::info!("Ran in {}s", start.elapsed().as_millis() as f32 / 1000.0);
         Ok(())
+    }
+
+    pub async fn run() -> Result<()> {
+        match RuGet::load().await {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                e.eprint();
+                Err(e)
+            }
+        }
     }
 }
 
@@ -157,19 +169,23 @@ impl RuGetCommand for RuGet {
 }
 
 impl RuGetConfigLayer for RuGet {
-    fn layer_config(&mut self, args: &ArgMatches, conf: &RuGetConfig) -> Result<()> {
+    fn layer_config(
+        &mut self,
+        args: &ArgMatches,
+        conf: &RuGetConfig,
+    ) -> std::result::Result<(), RuGetConfigError> {
         match self.subcommand {
             RuGetCmd::Ping(ref mut ping) => {
-                ping.layer_config(&args.subcommand_matches("ping").unwrap(), conf)
+                ping.layer_config(args.subcommand_matches("ping").unwrap(), conf)
             }
             RuGetCmd::Relist(ref mut relist) => {
-                relist.layer_config(&args.subcommand_matches("relist").unwrap(), conf)
+                relist.layer_config(args.subcommand_matches("relist").unwrap(), conf)
             }
             RuGetCmd::Search(ref mut search) => {
-                search.layer_config(&args.subcommand_matches("search").unwrap(), conf)
+                search.layer_config(args.subcommand_matches("search").unwrap(), conf)
             }
             RuGetCmd::Unlist(ref mut unlist) => {
-                unlist.layer_config(&args.subcommand_matches("unlist").unwrap(), conf)
+                unlist.layer_config(args.subcommand_matches("unlist").unwrap(), conf)
             }
         }
     }

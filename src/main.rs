@@ -3,5 +3,5 @@ use thisdiagnostic::DiagnosticResult;
 
 #[async_std::main]
 async fn main() -> DiagnosticResult<()> {
-    Ok(RuGet::load().await?)
+    Ok(RuGet::run().await?)
 }

@@ -3,7 +3,7 @@ use clap::Clap;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use thisdiagnostic::DiagnosticResult as Result;
+use thisdiagnostic::{BoxDiagnostic, DiagnosticResult as Result};
 use thiserror::Error;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -32,9 +32,13 @@ pub struct UnlistCmd {
 impl RuGetCommand for UnlistCmd {
     async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone())
-            .await?
+            .await
+            .box_diagnostic()?
             .with_key(self.api_key);
-        client.unlist(self.id.clone(), self.version.clone()).await?;
+        client
+            .unlist(self.id.clone(), self.version.clone())
+            .await
+            .box_diagnostic()?;
         if !self.quiet {
             println!("{}@{} has been unlisted.", self.id, self.version);
         }

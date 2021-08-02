@@ -3,29 +3,50 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use thisdiagnostic::{Diagnostic, DiagnosticResult as Result, GetMetadata};
+use thisdiagnostic::{Diagnostic, Severity};
 use thiserror::Error;
 
 pub use ruget_config_derive::*;
 
 pub trait RuGetConfigLayer {
-    fn layer_config(&mut self, _matches: &ArgMatches, _config: &RuGetConfig) -> Result<()> {
+    fn layer_config(
+        &mut self,
+        _matches: &ArgMatches,
+        _config: &RuGetConfig,
+    ) -> Result<(), RuGetConfigError> {
         Ok(())
     }
 }
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, Error)]
 pub enum RuGetConfigError {
     #[error(transparent)]
-    #[label("config::error")]
+    ConfigLayerError(#[from] Box<dyn std::error::Error + Send + Sync>),
+
+    #[error(transparent)]
     ConfigError(#[from] ConfigError),
 
     #[error(transparent)]
-    #[label("config::error")]
-    ConfigParseError(#[from] Box<dyn std::error::Error + Send + Sync>),
+    ConfigParseError(Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl GetMetadata for RuGetConfigError {}
+impl Diagnostic for RuGetConfigError {
+    fn label(&self) -> String {
+        match self {
+            RuGetConfigError::ConfigError(_) => "config::error".into(),
+            RuGetConfigError::ConfigParseError(_) => "config::parse_error".into(),
+            RuGetConfigError::ConfigLayerError(_) => "config::layer_error".into(),
+        }
+    }
+
+    fn severity(&self) -> Severity {
+        Severity::Error
+    }
+
+    fn message(&self) -> String {
+        self.to_string()
+    }
+}
 
 pub struct RuGetConfigOptions {
     global: bool,
@@ -70,7 +91,7 @@ impl RuGetConfigOptions {
         self
     }
 
-    pub fn load(self) -> Result<RuGetConfig> {
+    pub fn load(self) -> Result<RuGetConfig, RuGetConfigError> {
         let mut c = RuGetConfig::new();
         if self.global {
             if let Some(config_file) = self.global_config_file {

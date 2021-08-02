@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 ruget-config-derive = { path = "../ruget-config-derive" }
-thisdiagnostic = { path = "../thisdiagnostic" }
+thisdiagnostic = { version = "0.1.0", path = "../../../thisdiagnostic" }
 
 clap = { git = "https://github.com/zkat/clap" }
 config = { version = "0.9.3", features = ["toml"] }

@@ -6,7 +6,7 @@ use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
 use serde_json::json;
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
+use thisdiagnostic::{DiagnosticResult as Result, BoxDiagnostic, IntoDiagnostic};
 use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -32,7 +32,9 @@ impl RuGetCommand for PingCmd {
         if !self.quiet && !self.json {
             eprintln!("ping: {}", self.source);
         }
-        let client = NuGetClient::from_source(self.source.clone()).await?;
+        let client = NuGetClient::from_source(self.source.clone())
+            .await
+            .box_diagnostic()?;
         let time = start.elapsed().as_micros() as f32 / 1000.0;
         if !self.quiet && self.json {
             let output = serde_json::to_string_pretty(&json!({

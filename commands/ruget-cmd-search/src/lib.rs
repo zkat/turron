@@ -6,7 +6,7 @@ use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, SearchQuery};
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
+use thisdiagnostic::{BoxDiagnostic, DiagnosticResult as Result, IntoDiagnostic};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {
@@ -37,7 +37,7 @@ pub struct SearchCmd {
 #[async_trait]
 impl RuGetCommand for SearchCmd {
     async fn execute(self) -> Result<()> {
-        let client = NuGetClient::from_source(self.source.clone()).await?;
+        let client = NuGetClient::from_source(self.source.clone()).await.box_diagnostic()?;
 
         let query = SearchQuery {
             query: Some(self.query.join(" ")),
@@ -47,7 +47,7 @@ impl RuGetCommand for SearchCmd {
             package_type: self.package_type,
         };
 
-        let response = client.search(query).await?;
+        let response = client.search(query).await.box_diagnostic()?;
 
         if !self.quiet && self.json {
             println!(
