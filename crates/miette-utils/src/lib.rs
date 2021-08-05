@@ -12,7 +12,7 @@ pub struct DiagnosticError {
 
 impl Diagnostic for DiagnosticError {
     fn code(&self) -> &(dyn std::fmt::Display) {
-        todo!()
+        &self.code
     }
 
     fn severity(&self) -> Severity {
