@@ -1566,6 +1566,7 @@ dependencies = [
  "fern",
  "log",
  "ruget-cmd-ping",
+ "ruget-cmd-publish",
  "ruget-cmd-relist",
  "ruget-cmd-search",
  "ruget-cmd-unlist",
@@ -1579,6 +1580,22 @@ dependencies = [
 name = "ruget-cmd-ping"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "clap",
+ "log",
+ "nuget-api",
+ "ruget-command",
+ "ruget-config",
+ "serde_json",
+ "thisdiagnostic",
+ "url",
+]
+
+[[package]]
+name = "ruget-cmd-publish"
+version = "0.1.0"
+dependencies = [
+ "async-std",
  "async-trait",
  "clap",
  "log",
