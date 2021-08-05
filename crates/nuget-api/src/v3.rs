@@ -65,7 +65,10 @@ pub struct IndexResource {
 impl NuGetClient {
     pub async fn from_source(source: impl AsRef<str>) -> Result<Self, NuGetApiError> {
         let client = Client::new();
-        let url: Url = source.as_ref().parse().map_err(|_| NuGetApiError::InvalidSource(source.as_ref().into()))?;
+        let url: Url = source
+            .as_ref()
+            .parse()
+            .map_err(|_| NuGetApiError::InvalidSource(source.as_ref().into()))?;
         let req = surf::get(&url);
         let Index { resources, .. } = serde_json::from_slice(
             &client
@@ -114,7 +117,7 @@ impl NuGetClient {
             .publish
             .clone()
             .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?;
-        let req = surf::post(&url)
+        let req = surf::put(&url)
             .header("X-NuGet-ApiKey", self.get_key()?)
             .header("Content-Type", "multipart/form-data; boundary=X-BOUNDARY")
             .body(body);
@@ -129,6 +132,7 @@ impl NuGetClient {
             s if s.is_success() => Ok(()),
             StatusCode::BadRequest => Err(InvalidPackage),
             StatusCode::Conflict => Err(PackageAlreadyExists),
+            StatusCode::Forbidden => Err(BadApiKey(self.get_key()?)),
             code => Err(BadResponse(code)),
         }
     }
@@ -156,6 +160,7 @@ impl NuGetClient {
         match res.status() {
             StatusCode::NoContent => Ok(()),
             StatusCode::NotFound => Err(PackageNotFound),
+            StatusCode::Forbidden => Err(BadApiKey(self.get_key()?)),
             code => Err(BadResponse(code)),
         }
     }
@@ -184,6 +189,7 @@ impl NuGetClient {
         match res.status() {
             StatusCode::Ok => Ok(()),
             StatusCode::NotFound => Err(PackageNotFound),
+            StatusCode::Forbidden => Err(BadApiKey(self.get_key()?)),
             code => Err(BadResponse(code)),
         }
     }
@@ -224,7 +230,10 @@ impl NuGetClient {
             .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
 
         match res.status() {
-            StatusCode::Ok => Ok(res.body_json().await.map_err(|e| NuGetApiError::SurfError(e, url.into()))?),
+            StatusCode::Ok => Ok(res
+                .body_json()
+                .await
+                .map_err(|e| NuGetApiError::SurfError(e, url.into()))?),
             StatusCode::NotFound => Err(PackageNotFound),
             code => Err(BadResponse(code)),
         }
