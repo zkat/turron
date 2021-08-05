@@ -6,5 +6,4 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1.19"
-# miette = "0.2.0"
-miette = { path = "../../../miette" }
+miette = "0.2.1"

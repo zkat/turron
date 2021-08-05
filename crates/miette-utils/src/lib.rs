@@ -4,7 +4,7 @@ use miette::{Diagnostic, DiagnosticReporter, MietteReporter, Severity};
 use thiserror::Error;
 
 #[derive(Error)]
-#[error("{:?}", self)]
+#[error("{}", self.error)]
 pub struct DiagnosticError {
     pub error: Box<dyn std::error::Error + Send + Sync + 'static>,
     pub code: String,

@@ -11,8 +11,7 @@ clap = { git = "https://github.com/zkat/clap" }
 config = { version = "0.9.3", features = ["toml"] }
 serde = { version = "1.0.103", features = ["derive"] }
 thiserror = "1.0.22"
-miette = {path = "../../../miette" }
-# miette = "0.2.0"
+miette = "0.2.1"
 
 [dev-dependencies]
 anyhow = "1.0.24"

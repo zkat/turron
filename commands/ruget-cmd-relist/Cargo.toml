@@ -15,5 +15,4 @@ async-trait = "0.1.19"
 log = "0.4.11"
 serde_json = "1.0.66"
 thiserror = "1.0.26"
-# miette = "0.2.0"
-miette = { path = "../../../miette" }
+miette = "0.2.1"
