@@ -54,8 +54,8 @@ pub enum NuGetApiError {
     /// Unexpected response
     #[label("ruget::api::unexpected_response")]
     #[help("This is likely a bug with the NuGet API (or its documentation). Please report it.")]
-    #[error("Unexpected or undocumented response.")]
-    BadResponse,
+    #[error("Unexpected or undocumented response: {0}")]
+    BadResponse(surf::StatusCode),
 }
 
 impl GetMetadata for NuGetApiError {

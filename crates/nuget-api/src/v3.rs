@@ -129,7 +129,7 @@ impl NuGetClient {
             s if s.is_success() => Ok(()),
             StatusCode::BadRequest => Err(InvalidPackage),
             StatusCode::Conflict => Err(PackageAlreadyExists),
-            _ => Err(BadResponse),
+            code => Err(BadResponse(code)),
         }
     }
 
@@ -156,7 +156,7 @@ impl NuGetClient {
         match res.status() {
             StatusCode::NoContent => Ok(()),
             StatusCode::NotFound => Err(PackageNotFound),
-            _ => Err(BadResponse),
+            code => Err(BadResponse(code)),
         }
     }
 
@@ -184,7 +184,7 @@ impl NuGetClient {
         match res.status() {
             StatusCode::Ok => Ok(()),
             StatusCode::NotFound => Err(PackageNotFound),
-            _ => Err(BadResponse),
+            code => Err(BadResponse(code)),
         }
     }
 
@@ -226,7 +226,7 @@ impl NuGetClient {
         match res.status() {
             StatusCode::Ok => Ok(res.body_json().await.map_err(|e| NuGetApiError::SurfError(e, url.into()))?),
             StatusCode::NotFound => Err(PackageNotFound),
-            _ => Err(BadResponse),
+            code => Err(BadResponse(code)),
         }
     }
 }
