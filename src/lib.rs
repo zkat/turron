@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use clap::{ArgMatches, Clap, FromArgMatches, IntoApp};
 use directories::ProjectDirs;
+use miette_utils::{IntoDiagnostic, DiagnosticResult as Result};
 use ruget_command::RuGetCommand;
 use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_publish::PublishCmd;
@@ -105,7 +105,7 @@ impl RuGet {
         ruget.layer_config(&matches, &cfg)?;
         ruget
             .setup_logging()
-            .into_diagnostic("ruget::load::logging")?;
+            .into_diagnostic(&"ruget::load::logging")?;
         ruget.execute().await?;
         log::info!("Ran in {}s", start.elapsed().as_millis() as f32 / 1000.0);
         Ok(())

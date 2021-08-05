@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use clap::Clap;
+use miette::Diagnostic;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use thisdiagnostic::DiagnosticResult as Result;
 use thiserror::Error;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -30,7 +30,7 @@ pub struct UnlistCmd {
 
 #[async_trait]
 impl RuGetCommand for UnlistCmd {
-    async fn execute(self) -> Result<()> {
+    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
         let client = NuGetClient::from_source(self.source.clone())
             .await?
             .with_key(self.api_key);

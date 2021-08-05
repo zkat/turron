@@ -3,29 +3,41 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use thisdiagnostic::{Diagnostic, DiagnosticResult as Result, GetMetadata};
+use miette::Diagnostic;
 use thiserror::Error;
 
 pub use ruget_config_derive::*;
 
 pub trait RuGetConfigLayer {
-    fn layer_config(&mut self, _matches: &ArgMatches, _config: &RuGetConfig) -> Result<()> {
+    fn layer_config(
+        &mut self,
+        _matches: &ArgMatches,
+        _config: &RuGetConfig,
+    ) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
         Ok(())
     }
 }
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, Error)]
 pub enum RuGetConfigError {
     #[error(transparent)]
-    #[label("config::error")]
+    // #[label("config::error")]
     ConfigError(#[from] ConfigError),
 
     #[error(transparent)]
-    #[label("config::error")]
+    // #[label("config::error")]
     ConfigParseError(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl GetMetadata for RuGetConfigError {}
+impl Diagnostic for RuGetConfigError {
+    fn code(&self) -> &(dyn std::fmt::Display) {
+        &"config::error"
+    }
+
+    fn severity(&self) -> miette::Severity {
+        miette::Severity::Error
+    }
+}
 
 pub struct RuGetConfigOptions {
     global: bool,
@@ -70,7 +82,7 @@ impl RuGetConfigOptions {
         self
     }
 
-    pub fn load(self) -> Result<RuGetConfig> {
+    pub fn load(self) -> Result<RuGetConfig, RuGetConfigError> {
         let mut c = RuGetConfig::new();
         if self.global {
             if let Some(config_file) = self.global_config_file {

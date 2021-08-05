@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use clap::Clap;
+use miette::Diagnostic;
+use miette_utils::*;
 use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, SearchQuery};
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {
@@ -36,7 +37,7 @@ pub struct SearchCmd {
 
 #[async_trait]
 impl RuGetCommand for SearchCmd {
-    async fn execute(self) -> Result<()> {
+    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
         let client = NuGetClient::from_source(self.source.clone()).await?;
 
         let query = SearchQuery {
@@ -53,7 +54,7 @@ impl RuGetCommand for SearchCmd {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&response)
-                    .into_diagnostic("ruget::search::serialize")?
+                    .into_diagnostic(&"ruget::search::serialize")?
             );
         } else if !self.quiet {
             let headers = vec!["id", "version", "description"]

@@ -2,10 +2,11 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use clap::Clap;
+use miette::Diagnostic;
+use miette_utils::*;
 use nuget_api::v3::{Body, NuGetClient};
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -30,13 +31,13 @@ pub struct PublishCmd {
 
 #[async_trait]
 impl RuGetCommand for PublishCmd {
-    async fn execute(self) -> Result<()> {
+    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
         let client = NuGetClient::from_source(self.source.clone())
             .await?
             .with_key(self.api_key);
         let body = Body::from_file(&self.nupkgs[0])
             .await
-            .into_diagnostic("ruget::publish::bad_file")?;
+            .into_diagnostic(&"ruget::publish::bad_file")?;
         client.push(body).await?;
         Ok(())
     }

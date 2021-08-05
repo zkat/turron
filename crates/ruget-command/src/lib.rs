@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use thisdiagnostic::DiagnosticResult as Result;
+use miette::Diagnostic;
 
 #[async_trait]
 pub trait RuGetCommand {
-    async fn execute(self) -> Result<()>;
+    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>>;
 }

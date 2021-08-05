@@ -21,9 +21,9 @@ ruget-cmd-search = { path = "./commands/ruget-cmd-search" }
 ruget-cmd-unlist = { path = "./commands/ruget-cmd-unlist" }
 
 # Workspace Deps
+miette-utils = { path = "./crates/miette-utils" }
 ruget-command = { path = "./crates/ruget-command" }
 ruget-config = { path = "./crates/ruget-config" }
-thisdiagnostic = { path = "./crates/thisdiagnostic" }
 
 # Regular deps
 async-std = { version = "1.6.2", features = ["attributes", "unstable"] }
@@ -33,6 +33,8 @@ fern = "0.6.0"
 log = "0.4.11"
 smol = "0.1.18"
 directories = "3.0.1"
+miette = { path = "../miette" }
+# miette = "0.2.0"
 
 [build-dependencies]
 embed-resource = "1.3.3"

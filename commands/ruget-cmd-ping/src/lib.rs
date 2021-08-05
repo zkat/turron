@@ -2,11 +2,12 @@ use std::time::Instant;
 
 use async_trait::async_trait;
 use clap::Clap;
+use miette::Diagnostic;
+use miette_utils::*;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
 use ruget_config::RuGetConfigLayer;
 use serde_json::json;
-use thisdiagnostic::{DiagnosticResult as Result, IntoDiagnostic};
 use url::Url;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -27,7 +28,7 @@ pub struct PingCmd {
 
 #[async_trait]
 impl RuGetCommand for PingCmd {
-    async fn execute(self) -> Result<()> {
+    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
         let start = Instant::now();
         if !self.quiet && !self.json {
             eprintln!("ping: {}", self.source);
@@ -40,7 +41,7 @@ impl RuGetCommand for PingCmd {
                 "time": time,
                 "endpoints": client.endpoints,
             }))
-            .into_diagnostic("ruget::ping::serialize")?;
+            .into_diagnostic(&"ruget::ping::serialize")?;
             println!("{}", output);
         }
         if !self.quiet && !self.json {
