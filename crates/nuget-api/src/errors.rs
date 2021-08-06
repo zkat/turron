@@ -11,7 +11,7 @@ pub enum NuGetApiError {
     SurfError(surf::Error, String),
 
     /// Source does not seem to be a valid v3 source.
-    #[error("Source does not appear to be a valid NuGet API v3 source.")]
+    #[error("Source does not appear to be a valid NuGet API v3 source: {0}")]
     InvalidSource(String),
 
     /// Returned when a URL failed to parse.
