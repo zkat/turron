@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use clap::{ArgMatches, Clap, FromArgMatches, IntoApp};
 use directories::ProjectDirs;
-use miette_utils::{IntoDiagnostic, DiagnosticResult as Result};
+use miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 use ruget_command::RuGetCommand;
 use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
 
@@ -13,6 +13,7 @@ use ruget_cmd_publish::PublishCmd;
 use ruget_cmd_relist::RelistCmd;
 use ruget_cmd_search::SearchCmd;
 use ruget_cmd_unlist::UnlistCmd;
+use ruget_cmd_view::ViewCmd;
 
 #[derive(Debug, Clap)]
 #[clap(
@@ -149,6 +150,13 @@ pub enum RuGetCmd {
         setting = clap::AppSettings::DeriveDisplayOrder,
     )]
     Unlist(UnlistCmd),
+    #[clap(
+        about = "View package info",
+        setting = clap::AppSettings::ColoredHelp,
+        setting = clap::AppSettings::DisableHelpSubcommand,
+        setting = clap::AppSettings::DeriveDisplayOrder,
+    )]
+    View(ViewCmd),
 }
 
 #[async_trait]
@@ -161,6 +169,7 @@ impl RuGetCommand for RuGet {
             RuGetCmd::Relist(relist) => relist.execute().await,
             RuGetCmd::Search(search) => search.execute().await,
             RuGetCmd::Unlist(unlist) => unlist.execute().await,
+            RuGetCmd::View(view) => view.execute().await,
         }
     }
 }
@@ -182,6 +191,9 @@ impl RuGetConfigLayer for RuGet {
             }
             RuGetCmd::Unlist(ref mut unlist) => {
                 unlist.layer_config(args.subcommand_matches("unlist").unwrap(), conf)
+            }
+            RuGetCmd::View(ref mut view) => {
+                view.layer_config(args.subcommand_matches("view").unwrap(), conf)
             }
         }
     }

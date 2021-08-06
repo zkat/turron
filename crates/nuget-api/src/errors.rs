@@ -37,14 +37,14 @@ pub enum NuGetApiError {
     PackageAlreadyExists,
 
     /// Package does not exist.
-    // #[label("ruget::api::package_not_found")]
-    // #[help("This can happen if your provided API key is invalid, or if the version you specified does not exist. Double-check both!")]
     #[error("Package does not exist.")]
     PackageNotFound,
 
+    /// Got some bad JSON we couldn't parse.
+    #[error("Received some bad JSON from the source. Unable to parse.")]
+    BadJson,
+
     /// Unexpected response
-    // #[label("ruget::api::unexpected_response")]
-    // #[help("This is likely a bug with the NuGet API (or its documentation). Please report it.")]
     #[error("Unexpected or undocumented response: {0}")]
     BadResponse(surf::StatusCode),
 }
@@ -63,6 +63,7 @@ impl Diagnostic for NuGetApiError {
             PackageNotFound => &"ruget::api::package_not_found",
             BadResponse(_) => &"ruget::api::unexpected_response",
             BadApiKey(_) => &"ruget::api::bad_api_key",
+            BadJson => &"ruget::api::bad_json",
         }
     }
 
@@ -83,6 +84,7 @@ impl Diagnostic for NuGetApiError {
             PackageAlreadyExists => None,
             PackageNotFound => Some("This can happen if your provided API key is invalid, or if the version you specified does not exist. Double-check both!"),
             BadResponse(_) => Some("This is likely a bug with the NuGet API (or its documentation). Please report it."),
+            BadJson => None,
         }.map(|help: &'_ str| -> Box<dyn Iterator<Item = &str>> {
             Box::new(vec![help].into_iter())
         })

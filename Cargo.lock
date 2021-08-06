@@ -1585,6 +1585,7 @@ dependencies = [
  "ruget-cmd-relist",
  "ruget-cmd-search",
  "ruget-cmd-unlist",
+ "ruget-cmd-view",
  "ruget-command",
  "ruget-config",
  "smol",
@@ -1670,6 +1671,21 @@ dependencies = [
  "ruget-config",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "ruget-cmd-view"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "log",
+ "miette",
+ "miette-utils",
+ "nuget-api",
+ "ruget-command",
+ "ruget-config",
+ "serde_json",
 ]
 
 [[package]]

@@ -19,6 +19,7 @@ ruget-cmd-publish = { path = "./commands/ruget-cmd-publish" }
 ruget-cmd-relist = { path = "./commands/ruget-cmd-relist" }
 ruget-cmd-search = { path = "./commands/ruget-cmd-search" }
 ruget-cmd-unlist = { path = "./commands/ruget-cmd-unlist" }
+ruget-cmd-view = { path = "./commands/ruget-cmd-view" }
 
 # Workspace Deps
 miette-utils = { path = "./crates/miette-utils" }

@@ -120,7 +120,7 @@ impl ToTokens for RuGetConfigLayer {
                 use ruget_config::{RuGetConfig, RuGetConfigError, RuGetConfigLayer};
 
                 impl RuGetConfigLayer for #ident {
-                    fn layer_config(&mut self, args: &ArgMatches, config: &RuGetConfig) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
+                    fn layer_config(&mut self, args: &ArgMatches, config: &RuGetConfig) -> std::result::Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
                         #(#field_defs)*
                         Ok(())
                     }
