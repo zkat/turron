@@ -1,4 +1,6 @@
-use miette::Diagnostic;
+use std::cmp;
+
+use miette::{Diagnostic, DiagnosticSnippet, Severity, SourceSpan};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -42,7 +44,10 @@ pub enum NuGetApiError {
 
     /// Got some bad JSON we couldn't parse.
     #[error("Received some bad JSON from the source. Unable to parse.")]
-    BadJson,
+    BadJson {
+        source: serde_json::Error,
+        snippets: Vec<DiagnosticSnippet>,
+    },
 
     /// Unexpected response
     #[error("Unexpected or undocumented response: {0}")]
@@ -63,12 +68,12 @@ impl Diagnostic for NuGetApiError {
             PackageNotFound => &"ruget::api::package_not_found",
             BadResponse(_) => &"ruget::api::unexpected_response",
             BadApiKey(_) => &"ruget::api::bad_api_key",
-            BadJson => &"ruget::api::bad_json",
+            BadJson { .. } => &"ruget::api::bad_json",
         }
     }
 
-    fn severity(&self) -> miette::Severity {
-        miette::Severity::Error
+    fn severity(&self) -> Severity {
+        Severity::Error
     }
 
     fn help(&self) -> Option<Box<dyn Iterator<Item = &str> + '_>> {
@@ -84,9 +89,57 @@ impl Diagnostic for NuGetApiError {
             PackageAlreadyExists => None,
             PackageNotFound => Some("This can happen if your provided API key is invalid, or if the version you specified does not exist. Double-check both!"),
             BadResponse(_) => Some("This is likely a bug with the NuGet API (or its documentation). Please report it."),
-            BadJson => None,
+            BadJson { .. } => Some("This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
         }.map(|help: &'_ str| -> Box<dyn Iterator<Item = &str>> {
             Box::new(vec![help].into_iter())
         })
+    }
+
+    fn snippets(&self) -> Option<&[DiagnosticSnippet]> {
+        use NuGetApiError::*;
+        match self {
+            BadJson { snippets, .. } => Some(&snippets[..]),
+            _ => None,
+        }
+    }
+}
+
+impl NuGetApiError {
+    pub fn from_json_err(err: serde_json::Error, url: String, src: String) -> Self {
+        let mut line = 0usize;
+        let mut col = 0usize;
+        let mut offset = 0usize;
+        let len = src.len();
+        for char in src.chars() {
+            if char == '\n' {
+                col = 0;
+                line += 1;
+            } else {
+                col += 1;
+            }
+            if line + 1 == err.line() && col + 1 == err.column() {
+                break;
+            }
+            offset += char.len_utf8();
+        }
+        Self::BadJson {
+            source: err,
+            snippets: vec![DiagnosticSnippet {
+                message: None,
+                source_name: url,
+                source: Box::new(src),
+                context: SourceSpan {
+                    start: (offset - cmp::min(35, offset)).into(),
+                    end: (offset + cmp::min(35, len - offset) - 1).into(),
+                },
+                highlights: Some(vec![(
+                    "here".into(),
+                    SourceSpan {
+                        start: offset.into(),
+                        end: offset.into(),
+                    },
+                )]),
+            }],
+        }
     }
 }
