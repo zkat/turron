@@ -1,5 +1,5 @@
 use ruget_common::{
-    async_std::io::{Cursor, ReadExt},
+    smol::io::{Cursor, AsyncReadExt},
     surf::{self, Body, StatusCode},
 };
 

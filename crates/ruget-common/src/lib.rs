@@ -1,9 +1,9 @@
-pub use async_std;
 pub use chrono;
 pub use miette;
 pub use miette_utils;
 pub use semver;
 pub use serde;
+pub use smol;
 pub use serde_json;
 pub use surf;
 pub use thiserror;

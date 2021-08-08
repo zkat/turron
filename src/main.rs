@@ -2,8 +2,8 @@ use std::fmt;
 
 use ruget::RuGet;
 use ruget_common::{
-    async_std,
     miette::{Diagnostic, DiagnosticReporter, MietteReporter},
+    smol,
 };
 
 struct RuGetReport(Box<dyn Diagnostic + Send + Sync + 'static>);
@@ -13,13 +13,14 @@ impl fmt::Debug for RuGetReport {
     }
 }
 
-#[async_std::main]
-async fn main() {
-    match RuGet::load().await.map_err(RuGetReport) {
-        Ok(_) => {}
-        Err(err) => {
-            eprintln!("{:?}", err);
-            std::process::exit(1);
+fn main() {
+    smol::block_on(async {
+        match RuGet::load().await.map_err(RuGetReport) {
+            Ok(_) => {}
+            Err(err) => {
+                eprintln!("{:?}", err);
+                std::process::exit(1);
+            }
         }
-    }
+    });
 }
