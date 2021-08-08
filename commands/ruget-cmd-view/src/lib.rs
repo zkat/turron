@@ -3,6 +3,7 @@ use clap::Clap;
 use miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
+use ruget_common::miette::Diagnostic;
 use ruget_config::RuGetConfigLayer;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]

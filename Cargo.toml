@@ -24,6 +24,7 @@ ruget-cmd-view = { path = "./commands/ruget-cmd-view" }
 # Workspace Deps
 miette-utils = { path = "./crates/miette-utils" }
 ruget-command = { path = "./crates/ruget-command" }
+ruget-common = { path = "./crates/ruget-common" }
 ruget-config = { path = "./crates/ruget-config" }
 
 # Regular deps
@@ -34,7 +35,6 @@ fern = "0.6.0"
 log = "0.4.11"
 smol = "0.1.18"
 directories = "3.0.1"
-miette = "0.2.1"
 
 [build-dependencies]
 embed-resource = "1.3.3"

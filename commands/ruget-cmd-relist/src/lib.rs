@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use clap::Clap;
-use miette::Diagnostic;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
+use ruget_common::miette::Diagnostic;
 use ruget_config::RuGetConfigLayer;
 use thiserror::Error;
 use url::Url;
+
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct RelistCmd {

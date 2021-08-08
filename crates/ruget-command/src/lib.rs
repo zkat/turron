@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use miette::Diagnostic;
+use ruget_common::miette::Diagnostic;
 
 #[async_trait]
 pub trait RuGetCommand {

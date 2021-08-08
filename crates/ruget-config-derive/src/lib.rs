@@ -116,7 +116,7 @@ impl ToTokens for RuGetConfigLayer {
                 use std::str::FromStr;
 
                 use clap::ArgMatches;
-                use miette::Diagnostic;
+                use ruget_common::miette::Diagnostic;
                 use ruget_config::{RuGetConfig, RuGetConfigError, RuGetConfigLayer};
 
                 impl RuGetConfigLayer for #ident {

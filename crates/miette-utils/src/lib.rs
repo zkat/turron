@@ -1,6 +1,6 @@
 use std::fmt;
 
-use miette::{Diagnostic, DiagnosticReporter, MietteReporter, Severity};
+use ruget_common::miette::{Diagnostic, DiagnosticReporter, MietteReporter};
 use thiserror::Error;
 
 #[derive(Error)]
@@ -13,10 +13,6 @@ pub struct DiagnosticError {
 impl Diagnostic for DiagnosticError {
     fn code(&self) -> &(dyn std::fmt::Display) {
         &self.code
-    }
-
-    fn severity(&self) -> Severity {
-        Severity::Error
     }
 }
 

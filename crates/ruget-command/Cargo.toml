@@ -5,5 +5,6 @@ authors = ["Kat Marchán <kzm@zkat.tech>"]
 edition = "2018"
 
 [dependencies]
+ruget-common = { path = "../ruget-common" }
+
 async-trait = "0.1.19"
-miette = "0.2.1"

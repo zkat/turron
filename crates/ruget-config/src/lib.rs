@@ -3,7 +3,7 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use miette::Diagnostic;
+use ruget_common::miette::Diagnostic;
 use thiserror::Error;
 
 pub use ruget_config_derive::*;
@@ -32,10 +32,6 @@ pub enum RuGetConfigError {
 impl Diagnostic for RuGetConfigError {
     fn code(&self) -> &(dyn std::fmt::Display) {
         &"config::error"
-    }
-
-    fn severity(&self) -> miette::Severity {
-        miette::Severity::Error
     }
 }
 

@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use clap::Clap;
-use miette::Diagnostic;
 use miette_utils::*;
 use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, SearchQuery};
 use ruget_command::RuGetCommand;
+use ruget_common::miette::Diagnostic;
 use ruget_config::RuGetConfigLayer;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]

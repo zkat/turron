@@ -2,10 +2,10 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use clap::Clap;
-use miette::Diagnostic;
 use miette_utils::*;
 use nuget_api::v3::{Body, NuGetClient};
 use ruget_command::RuGetCommand;
+use ruget_common::miette::Diagnostic;
 use ruget_config::RuGetConfigLayer;
 use url::Url;
 

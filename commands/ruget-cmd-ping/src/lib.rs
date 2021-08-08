@@ -2,10 +2,10 @@ use std::time::Instant;
 
 use async_trait::async_trait;
 use clap::Clap;
-use miette::Diagnostic;
 use miette_utils::*;
 use nuget_api::v3::NuGetClient;
 use ruget_command::RuGetCommand;
+use ruget_common::miette::Diagnostic;
 use ruget_config::RuGetConfigLayer;
 use serde_json::json;
 use url::Url;

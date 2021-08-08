@@ -1,7 +1,7 @@
 use std::fmt;
 
-use miette::{Diagnostic, DiagnosticReporter, MietteReporter};
 use ruget::RuGet;
+use ruget_common::miette::{Diagnostic, DiagnosticReporter, MietteReporter};
 
 struct RuGetReport(Box<dyn Diagnostic + Send + Sync + 'static>);
 impl fmt::Debug for RuGetReport {

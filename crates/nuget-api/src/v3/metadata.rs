@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 pub use surf::Body;
@@ -36,8 +38,13 @@ impl NuGetClient {
                     .body_string()
                     .await
                     .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
-                Ok(serde_json::from_str(&body)
-                    .map_err(|e| NuGetApiError::from_json_err(e, url.into(), body))?)
+                Ok(
+                    serde_json::from_str(&body).map_err(|e| NuGetApiError::BadJson {
+                        source: e,
+                        url: url.into(),
+                        json: Arc::new(body),
+                    })?,
+                )
             }
             StatusCode::NotFound => Err(PackageNotFound),
             code => Err(BadResponse(code)),
