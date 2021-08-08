@@ -1,7 +1,10 @@
 use std::fmt;
 
 use ruget::RuGet;
-use ruget_common::miette::{Diagnostic, DiagnosticReporter, MietteReporter};
+use ruget_common::{
+    async_std,
+    miette::{Diagnostic, DiagnosticReporter, MietteReporter},
+};
 
 struct RuGetReport(Box<dyn Diagnostic + Send + Sync + 'static>);
 impl fmt::Debug for RuGetReport {

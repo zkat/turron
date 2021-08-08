@@ -1,6 +1,7 @@
-use serde::{Deserialize, Serialize};
-pub use surf::Body;
-use surf::StatusCode;
+use ruget_common::{
+    serde::{Deserialize, Serialize},
+    surf::{self, StatusCode},
+};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;

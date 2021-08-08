@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
+pub use clap::ArgMatches;
 use ruget_common::miette::Diagnostic;
-use thiserror::Error;
+use ruget_common::thiserror::{self, Error};
 
 pub use ruget_config_derive::*;
 

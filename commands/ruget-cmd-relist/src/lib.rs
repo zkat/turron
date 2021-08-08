@@ -1,12 +1,14 @@
-use async_trait::async_trait;
-use clap::Clap;
 use nuget_api::v3::NuGetClient;
-use ruget_command::RuGetCommand;
-use ruget_common::miette::Diagnostic;
-use ruget_config::RuGetConfigLayer;
-use thiserror::Error;
-use url::Url;
-
+use ruget_command::{
+    async_trait::async_trait,
+    clap::{self, Clap},
+    log,
+    ruget_config::{self, RuGetConfigLayer},
+    RuGetCommand,
+};
+use ruget_common::{
+    miette_utils::DiagnosticResult as Result, thiserror::Error,
+};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct RelistCmd {
@@ -19,7 +21,7 @@ pub struct RelistCmd {
         default_value = "https://api.nuget.org/v3/index.json",
         long
     )]
-    source: Url,
+    source: String,
     #[clap(from_global)]
     loglevel: log::LevelFilter,
     #[clap(from_global)]
@@ -32,7 +34,7 @@ pub struct RelistCmd {
 
 #[async_trait]
 impl RuGetCommand for RelistCmd {
-    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
+    async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone())
             .await?
             .with_key(self.api_key);

@@ -1,8 +1,10 @@
 use std::{cmp, sync::Arc};
 
-use thiserror::Error;
-
-use ruget_common::miette::{Diagnostic, DiagnosticSnippet, SourceSpan};
+use ruget_common::{
+    miette::{Diagnostic, DiagnosticSnippet, SourceSpan},
+    serde_json, surf,
+    thiserror::{self, Error},
+};
 
 #[derive(Error, Debug)]
 pub enum NuGetApiError {

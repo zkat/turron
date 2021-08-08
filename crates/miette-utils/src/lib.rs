@@ -1,6 +1,6 @@
 use std::fmt;
 
-use ruget_common::miette::{Diagnostic, DiagnosticReporter, MietteReporter};
+use miette::{Diagnostic, DiagnosticReporter, MietteReporter};
 use thiserror::Error;
 
 #[derive(Error)]
@@ -22,7 +22,7 @@ impl fmt::Debug for DiagnosticError {
     }
 }
 
-pub type DiagnosticResult<T> = Result<T, Box<dyn Diagnostic + Send +Sync + 'static>>;
+pub type DiagnosticResult<T> = Result<T, Box<dyn Diagnostic + Send + Sync + 'static>>;
 
 pub trait IntoDiagnostic<T, E> {
     fn into_diagnostic(self, code: &(dyn fmt::Display)) -> Result<T, DiagnosticError>;

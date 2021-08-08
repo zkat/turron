@@ -7,11 +7,7 @@ edition = "2018"
 
 [dependencies]
 ruget-common = { path = "../ruget-common" }
-
-chrono = { version = "0.4.19", features = ["serde"] }
-semver = { version = "1.0.4", features = ["serde"] }
+# NOTE: This is some duplication because serde insists on being a toplevel
+# dep. You should only use this crate from `ruget-common` either way, and this
+# must be kept in sync with the version there.
 serde = "1.0.126"
-surf = "2.2.0"
-thiserror = "1.0.26"
-async-std = "1.9.0"
-serde_json = "1.0.66"

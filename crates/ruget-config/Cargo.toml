@@ -8,10 +8,12 @@ edition = "2018"
 ruget-common = { path = "../ruget-common" }
 ruget-config-derive = { path = "../ruget-config-derive" }
 
+# False deps
 clap = { git = "https://github.com/zkat/clap" }
-config = { version = "0.9.3", features = ["toml"] }
 serde = { version = "1.0.103", features = ["derive"] }
-thiserror = "1.0.22"
+
+# True deps
+config = { version = "0.9.3", features = ["toml"] }
 
 [dev-dependencies]
 anyhow = "1.0.24"

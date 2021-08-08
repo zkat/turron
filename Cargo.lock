@@ -107,10 +107,10 @@ version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "871f9bb5e0a22eeb7e8cf16641feb87c9dc67032ccf8ff49e772eb9941d3a965"
 dependencies = [
- "async-task 4.0.3",
+ "async-task",
  "concurrent-queue",
  "fastrand",
- "futures-lite 1.12.0",
+ "futures-lite",
  "once_cell",
  "slab",
 ]
@@ -125,8 +125,8 @@ dependencies = [
  "async-executor",
  "async-io",
  "async-mutex",
- "blocking 1.0.2",
- "futures-lite 1.12.0",
+ "blocking",
+ "futures-lite",
  "num_cpus",
  "once_cell",
 ]
@@ -138,14 +138,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a811e6a479f2439f0c04038796b5cfb3d2ad56c230e0f2d3f7b04d68cfee607b"
 dependencies = [
  "concurrent-queue",
- "futures-lite 1.12.0",
+ "futures-lite",
  "libc",
  "log",
  "once_cell",
- "parking 2.0.0",
+ "parking",
  "polling",
  "slab",
- "socket2 0.4.1",
+ "socket2",
  "waker-fn",
  "winapi",
 ]
@@ -170,15 +170,15 @@ dependencies = [
 
 [[package]]
 name = "async-process"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8f38756dd9ac84671c428afbf7c9f7495feff9ec5b0710f17100098e5b354ac"
+checksum = "b21b63ab5a0db0369deb913540af2892750e42d949faacc7a61495ac418a1692"
 dependencies = [
  "async-io",
- "blocking 1.0.2",
+ "blocking",
  "cfg-if",
  "event-listener",
- "futures-lite 1.12.0",
+ "futures-lite",
  "libc",
  "once_cell",
  "signal-hook",
@@ -201,24 +201,18 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-io",
- "futures-lite 1.12.0",
+ "futures-lite",
  "gloo-timers",
  "kv-log-macro",
  "log",
  "memchr",
  "num_cpus",
  "once_cell",
- "pin-project-lite 0.2.7",
+ "pin-project-lite",
  "pin-utils",
  "slab",
  "wasm-bindgen-futures",
 ]
-
-[[package]]
-name = "async-task"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c17772156ef2829aadc587461c7753af20b7e8db1529bc66855add962a3b35d3"
 
 [[package]]
 name = "async-task"
@@ -289,29 +283,15 @@ dependencies = [
 
 [[package]]
 name = "blocking"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2468ff7bf85066b4a3678fede6fe66db31846d753ff0adfbfab2c6a6e81612b"
-dependencies = [
- "async-channel",
- "atomic-waker",
- "futures-lite 0.1.11",
- "once_cell",
- "parking 1.0.6",
- "waker-fn",
-]
-
-[[package]]
-name = "blocking"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c5e170dbede1f740736619b776d7251cb1b9095c435c34d8ca9f57fcd2f335e9"
 dependencies = [
  "async-channel",
- "async-task 4.0.3",
+ "async-task",
  "atomic-waker",
  "fastrand",
- "futures-lite 1.12.0",
+ "futures-lite",
  "once_cell",
 ]
 
@@ -516,7 +496,7 @@ dependencies = [
  "openssl-probe",
  "openssl-sys",
  "schannel",
- "socket2 0.4.1",
+ "socket2",
  "winapi",
 ]
 
@@ -728,21 +708,6 @@ checksum = "0b0e06c393068f3a6ef246c75cdca793d6a46347e75286933e5e75fd2fd11582"
 
 [[package]]
 name = "futures-lite"
-version = "0.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97999970129b808f0ccba93211201d431fcc12d7e1ffae03a61b5cedd1a7ced2"
-dependencies = [
- "fastrand",
- "futures-core",
- "futures-io",
- "memchr",
- "parking 2.0.0",
- "pin-project-lite 0.1.12",
- "waker-fn",
-]
-
-[[package]]
-name = "futures-lite"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7694489acd39452c77daa48516b894c153f192c3578d5a839b62c58099fcbf48"
@@ -751,8 +716,8 @@ dependencies = [
  "futures-core",
  "futures-io",
  "memchr",
- "parking 2.0.0",
- "pin-project-lite 0.2.7",
+ "parking",
+ "pin-project-lite",
  "waker-fn",
 ]
 
@@ -793,7 +758,7 @@ dependencies = [
  "futures-macro",
  "futures-task",
  "memchr",
- "pin-project-lite 0.2.7",
+ "pin-project-lite",
  "pin-utils",
  "proc-macro-hack",
  "proc-macro-nested",
@@ -936,9 +901,9 @@ dependencies = [
  "async-std",
  "base64",
  "cookie",
- "futures-lite 1.12.0",
+ "futures-lite",
  "infer",
- "pin-project-lite 0.2.7",
+ "pin-project-lite",
  "rand 0.7.3",
  "serde 1.0.127",
  "serde_json",
@@ -1006,7 +971,7 @@ dependencies = [
  "curl",
  "curl-sys",
  "flume",
- "futures-lite 1.12.0",
+ "futures-lite",
  "http",
  "log",
  "once_cell",
@@ -1152,7 +1117,7 @@ dependencies = [
 name = "miette-utils"
 version = "0.1.0"
 dependencies = [
- "ruget-common",
+ "miette",
  "thiserror",
 ]
 
@@ -1208,14 +1173,8 @@ dependencies = [
 name = "nuget-api"
 version = "0.1.0"
 dependencies = [
- "async-std",
- "chrono",
  "ruget-common",
- "semver 1.0.4",
  "serde 1.0.127",
- "serde_json",
- "surf",
- "thiserror",
 ]
 
 [[package]]
@@ -1310,12 +1269,6 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "parking"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cb300f271742d4a2a66c01b6b2fa0c83dfebd2e0bf11addb879a3547b4ed87c"
-
-[[package]]
-name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "427c3892f9e783d91cc128285287e70a59e206ca452770ece88a76f7a3eddd72"
@@ -1345,12 +1298,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "pin-project-lite"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "257b64915a082f7811703966789728173279bdebb956b143dbcd23f6f970a777"
 
 [[package]]
 name = "pin-project-lite"
@@ -1549,9 +1496,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab49abadf3f9e1c4bc499e8845e152ad87d2ad2d30371841171169e9d75feee"
+checksum = "8383f39639269cde97d255a32bdb68c047337295414940c68bdd30c2e13203ff"
 dependencies = [
  "bitflags",
 ]
@@ -1596,14 +1543,9 @@ dependencies = [
 name = "ruget"
 version = "0.1.0"
 dependencies = [
- "async-std",
- "async-trait",
- "clap",
  "directories",
  "embed-resource",
  "fern",
- "log",
- "miette-utils",
  "ruget-cmd-ping",
  "ruget-cmd-publish",
  "ruget-cmd-relist",
@@ -1612,74 +1554,44 @@ dependencies = [
  "ruget-cmd-view",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "smol",
 ]
 
 [[package]]
 name = "ruget-cmd-ping"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "clap",
- "log",
- "miette-utils",
  "nuget-api",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "serde_json",
- "url",
 ]
 
 [[package]]
 name = "ruget-cmd-publish"
 version = "0.1.0"
 dependencies = [
- "async-std",
- "async-trait",
- "clap",
- "log",
- "miette-utils",
  "nuget-api",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "serde_json",
- "url",
 ]
 
 [[package]]
 name = "ruget-cmd-relist"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "clap",
- "log",
  "nuget-api",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "serde_json",
- "thiserror",
- "url",
 ]
 
 [[package]]
 name = "ruget-cmd-search"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "clap",
- "log",
- "miette-utils",
  "nu-ansi-term",
  "nu-table",
  "nuget-api",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "serde_json",
  "term_size",
 ]
 
@@ -1687,30 +1599,18 @@ dependencies = [
 name = "ruget-cmd-unlist"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "clap",
- "log",
  "nuget-api",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "serde_json",
- "thiserror",
 ]
 
 [[package]]
 name = "ruget-cmd-view"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "clap",
- "log",
- "miette-utils",
  "nuget-api",
  "ruget-command",
  "ruget-common",
- "ruget-config",
- "serde_json",
 ]
 
 [[package]]
@@ -1718,14 +1618,26 @@ name = "ruget-command"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "clap",
+ "log",
  "ruget-common",
+ "ruget-config",
+ "serde_json",
 ]
 
 [[package]]
 name = "ruget-common"
 version = "0.1.0"
 dependencies = [
+ "async-std",
+ "chrono",
  "miette",
+ "miette-utils",
+ "semver 1.0.4",
+ "serde 1.0.127",
+ "serde_json",
+ "surf",
+ "thiserror",
 ]
 
 [[package]]
@@ -1740,7 +1652,6 @@ dependencies = [
  "ruget-config-derive",
  "serde 1.0.127",
  "tempfile",
- "thiserror",
 ]
 
 [[package]]
@@ -1783,12 +1694,6 @@ dependencies = [
  "lazy_static 1.4.0",
  "winapi",
 ]
-
-[[package]]
-name = "scoped-tls"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea6a9290e3c9cf0f18145ef7ffa62d68ee0bf5fcd651017e586dc7fd5da448c2"
 
 [[package]]
 name = "scopeguard"
@@ -1943,9 +1848,9 @@ dependencies = [
 
 [[package]]
 name = "slab"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f173ac3d1a7e3b28003f40de0b5ce7fe2710f9b9dc3fc38664cebee46b3b6527"
+checksum = "c307a32c1c5c437f38c7fd45d753050587732ba8628319fbdf12a7e289ccc590"
 
 [[package]]
 name = "sluice"
@@ -1956,38 +1861,6 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-io",
-]
-
-[[package]]
-name = "smol"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "620cbb3c6e34da57d3a248cda0cd01cd5848164dc062e764e65d06fe3ea7aed5"
-dependencies = [
- "async-task 3.0.0",
- "blocking 0.4.7",
- "concurrent-queue",
- "fastrand",
- "futures-io",
- "futures-util",
- "libc",
- "once_cell",
- "scoped-tls",
- "slab",
- "socket2 0.3.19",
- "wepoll-sys-stjepang",
- "winapi",
-]
-
-[[package]]
-name = "socket2"
-version = "0.3.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "122e570113d28d773067fab24266b66753f6ea915758651696b6e35e49f88d6e"
-dependencies = [
- "cfg-if",
- "libc",
- "winapi",
 ]
 
 [[package]]
@@ -2101,7 +1974,7 @@ dependencies = [
  "log",
  "mime_guess",
  "once_cell",
- "pin-project-lite 0.2.7",
+ "pin-project-lite",
  "serde 1.0.127",
  "serde_json",
  "web-sys",
@@ -2261,7 +2134,7 @@ checksum = "09adeb8c97449311ccd28a427f96fb563e7fd31aabf994189879d9da2394b89d"
 dependencies = [
  "cfg-if",
  "log",
- "pin-project-lite 0.2.7",
+ "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
 ]
@@ -2523,15 +2396,6 @@ name = "wepoll-ffi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d743fdedc5c64377b5fc2bc036b01c7fd642205a0d96356034ae3404d49eb7fb"
-dependencies = [
- "cc",
-]
-
-[[package]]
-name = "wepoll-sys-stjepang"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fdfbb03f290ca0b27922e8d48a0997b4ceea12df33269b9f75e713311eb178d"
 dependencies = [
  "cc",
 ]

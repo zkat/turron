@@ -1,6 +1,7 @@
-use async_std::io::{Cursor, ReadExt};
-pub use surf::Body;
-use surf::{StatusCode};
+use ruget_common::{
+    async_std::io::{Cursor, ReadExt},
+    surf::{self, Body, StatusCode},
+};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;

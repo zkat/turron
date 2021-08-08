@@ -22,18 +22,11 @@ ruget-cmd-unlist = { path = "./commands/ruget-cmd-unlist" }
 ruget-cmd-view = { path = "./commands/ruget-cmd-view" }
 
 # Workspace Deps
-miette-utils = { path = "./crates/miette-utils" }
 ruget-command = { path = "./crates/ruget-command" }
 ruget-common = { path = "./crates/ruget-common" }
-ruget-config = { path = "./crates/ruget-config" }
 
 # Regular deps
-async-std = { version = "1.6.2", features = ["attributes", "unstable"] }
-async-trait = "0.1.36"
-clap = { git = "https://github.com/zkat/clap" }
 fern = "0.6.0"
-log = "0.4.11"
-smol = "0.1.18"
 directories = "3.0.1"
 
 [build-dependencies]

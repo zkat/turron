@@ -1,12 +1,15 @@
 use std::env;
 use std::path::PathBuf;
 
-use async_trait::async_trait;
-use clap::{ArgMatches, Clap, FromArgMatches, IntoApp};
 use directories::ProjectDirs;
-use miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 use ruget_command::RuGetCommand;
-use ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions};
+use ruget_command::{
+    async_trait::async_trait,
+    clap::{self, ArgMatches, Clap, FromArgMatches, IntoApp},
+    log,
+    ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions},
+};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_publish::PublishCmd;

@@ -5,15 +5,6 @@ authors = ["Kat Marchán <kzm@zkat.tech>"]
 edition = "2018"
 
 [dependencies]
-miette-utils = { path = "../../crates/miette-utils" }
 nuget-api = { path = "../../crates/nuget-api" }
 ruget-command = { path = "../../crates/ruget-command" }
 ruget-common = { path = "../../crates/ruget-common" }
-ruget-config = { path = "../../crates/ruget-config" }
-
-clap = { git = "https://github.com/zkat/clap" }
-url = "2.1.0"
-async-trait = "0.1.19"
-log = "0.4.11"
-serde_json = "1.0.66"
-async-std = "1.9.0"

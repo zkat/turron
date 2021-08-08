@@ -1,7 +1,13 @@
-use async_trait::async_trait;
-use ruget_common::miette::Diagnostic;
+use ruget_common::miette_utils::DiagnosticResult as Result;
 
-#[async_trait]
+// Re-exports for common command deps:
+pub use async_trait;
+pub use clap;
+pub use log;
+pub use ruget_config;
+pub use serde_json;
+
+#[async_trait::async_trait]
 pub trait RuGetCommand {
-    async fn execute(self) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>>;
+    async fn execute(self) -> Result<()>;
 }

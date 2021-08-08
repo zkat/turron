@@ -1,10 +1,12 @@
-use async_trait::async_trait;
-use clap::Clap;
-use miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 use nuget_api::v3::NuGetClient;
-use ruget_command::RuGetCommand;
-use ruget_common::miette::Diagnostic;
-use ruget_config::RuGetConfigLayer;
+use ruget_command::{
+    async_trait::async_trait,
+    clap::{self, Clap},
+    log,
+    ruget_config::{self, RuGetConfigLayer},
+    serde_json, RuGetCommand,
+};
+use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct ViewCmd {

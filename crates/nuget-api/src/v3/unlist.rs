@@ -1,5 +1,4 @@
-pub use surf::Body;
-use surf::StatusCode;
+use ruget_common::surf::{self, StatusCode};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
