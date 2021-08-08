@@ -2,7 +2,6 @@ use std::env;
 use std::path::PathBuf;
 
 use directories::ProjectDirs;
-use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 use ruget_command::RuGetCommand;
 use ruget_command::{
     async_trait::async_trait,
@@ -10,6 +9,7 @@ use ruget_command::{
     log,
     ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions},
 };
+use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_publish::PublishCmd;
