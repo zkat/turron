@@ -156,12 +156,62 @@ impl<'a> FromExternalError<&'a str, SemverParseError<&'a str>> for SemverParseEr
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq)]
 pub enum Identifier {
     /// An identifier that's solely numbers.
     Numeric(u64),
     /// An identifier with letters and numbers.
     AlphaNumeric(String),
+}
+
+impl std::hash::Hash for Identifier {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Identifier::Numeric(x) => x.hash(state),
+            Identifier::AlphaNumeric(x) => x.to_uppercase().hash(state),
+        }
+    }
+}
+
+impl PartialEq for Identifier {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Identifier::Numeric(x), Identifier::Numeric(y)) => x == y,
+            (Identifier::AlphaNumeric(x), Identifier::AlphaNumeric(y)) => {
+                x.to_uppercase() == y.to_uppercase()
+            }
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for Identifier {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Identifier::Numeric(x), Identifier::Numeric(y)) => Some(x.cmp(y)),
+            (Identifier::AlphaNumeric(x), Identifier::AlphaNumeric(y)) => {
+                let x_upper = x.to_uppercase();
+                let y_upper = y.to_uppercase();
+                Some(x_upper.cmp(&y_upper))
+            }
+            _ => None,
+        }
+    }
+}
+
+impl Ord for Identifier {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Identifier::Numeric(x), Identifier::Numeric(y)) => x.cmp(y),
+            (Identifier::AlphaNumeric(x), Identifier::AlphaNumeric(y)) => {
+                let x_upper = x.to_uppercase();
+                let y_upper = y.to_uppercase();
+                x_upper.cmp(&y_upper)
+            }
+            (Identifier::AlphaNumeric(_), Identifier::Numeric(_)) => Ordering::Greater,
+            (Identifier::Numeric(_), Identifier::AlphaNumeric(_)) => Ordering::Less,
+        }
+    }
 }
 
 impl fmt::Display for Identifier {
@@ -641,6 +691,7 @@ mod tests {
         assert_eq!(lesser_version.cmp(&greater_version), Ordering::Less);
         assert_eq!(greater_version.cmp(&lesser_version), Ordering::Greater);
     }
+
     #[test]
     fn comparison_with_different_minor_version() {
         let lesser_version = Version {
@@ -761,6 +812,15 @@ mod tests {
             build: vec![],
         };
         assert_eq!(v1_rc1.cmp(&v1), Ordering::Less);
+        let v1_alpha1_capitalized = Version {
+            major: 1,
+            minor: 0,
+            patch: 0,
+            revision: 0,
+            pre_release: vec![AlphaNumeric("Alpha".into()), Numeric(1)],
+            build: vec![],
+        };
+        assert_eq!(v1_alpha1.cmp(&v1_alpha1_capitalized), Ordering::Equal);
     }
 
     #[test]
