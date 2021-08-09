@@ -465,35 +465,38 @@ fn wildcard(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
 }
 
 fn x_or_asterisk(input: &str) -> IResult<&str, (), SemverParseError<&str>> {
-    map(alt((tag("x"), tag("*"))), |_| ())(input)
+    map(alt((tag("x"), tag("X"), tag("*"))), |_| ())(input)
 }
 
 type PartialVersion = (
     u64,
     Option<u64>,
     Option<u64>,
+    Option<u64>,
     Vec<Identifier>,
     Vec<Identifier>,
 );
 
-fn partial_version(
-    input: &str,
-) -> IResult<&str, PartialVersion, SemverParseError<&str>> {
+fn partial_version(input: &str) -> IResult<&str, PartialVersion, SemverParseError<&str>> {
     map(
-        tuple((number, maybe_dot_number, maybe_dot_number, extras)),
-        |(major, minor, patch, (pre_release, build))| (major, minor, patch, pre_release, build),
+        tuple((
+            number,
+            maybe_dot_number,
+            maybe_dot_number,
+            maybe_dot_number,
+            extras,
+        )),
+        |(major, minor, patch, revision, (pre_release, build))| {
+            (major, minor, patch, revision, pre_release, build)
+        },
     )(input)
 }
 
-fn maybe_dot_number(
-    input: &str,
-) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
+fn maybe_dot_number(input: &str) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
     opt(preceded(tag("."), number))(input)
 }
 
-fn any_operation_followed_by_version(
-    input: &str,
-) -> IResult<&str, Range, SemverParseError<&str>> {
+fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     use Operation::*;
     context(
         "operation followed by version",
@@ -539,9 +542,7 @@ fn any_operation_followed_by_version(
     )(input)
 }
 
-fn x_and_asterisk_version(
-    input: &str,
-) -> IResult<&str, Range, SemverParseError<&str>> {
+fn x_and_asterisk_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     context(
         "minor X patch X",
         map(
@@ -710,9 +711,7 @@ fn hyphenated_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>>
     )(input)
 }
 
-fn no_operation_followed_by_version(
-    input: &str,
-) -> IResult<&str, Range, SemverParseError<&str>> {
+fn no_operation_followed_by_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     context(
         "major and minor",
         map_opt(partial_version, |parsed| match parsed {
