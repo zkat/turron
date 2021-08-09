@@ -8,10 +8,10 @@ use ruget_common::{
 
 use crate::errors::NuGetApiError;
 
-pub use metadata::*;
+pub use registration::*;
 pub use search::*;
 
-mod metadata;
+mod registration;
 mod push;
 mod relist;
 mod search;
@@ -28,7 +28,7 @@ pub struct NuGetClient {
 pub struct NuGetEndpoints {
     pub package_content: Option<Url>,
     pub publish: Option<Url>,
-    pub metadata: Option<Url>,
+    pub registration: Option<Url>,
     pub search: Option<Url>,
     pub catalog: Option<Url>,
     pub signatures: Option<Url>,
@@ -48,7 +48,7 @@ impl NuGetEndpoints {
         NuGetEndpoints {
             package_content: Self::find_endpoint(&resources, "PackageBaseAddress/3.0.0"),
             publish: Self::find_endpoint(&resources, "PackagePublish/2.0.0"),
-            metadata: Self::find_endpoint(&resources, "RegistrationsBaseUrl/3.6.0"),
+            registration: Self::find_endpoint(&resources, "RegistrationsBaseUrl/3.6.0"),
             search: Self::find_endpoint(&resources, "SearchQueryService/3.5.0"),
             catalog: Self::find_endpoint(&resources, "Catalog/3.0.0"),
             signatures: Self::find_endpoint(&resources, "RepositorySignatures/5.0.0"),

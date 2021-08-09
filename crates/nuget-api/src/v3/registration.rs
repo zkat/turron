@@ -5,21 +5,51 @@ use ruget_common::{
     chrono::{DateTime, Utc},
     serde::{Deserialize, Serialize},
     serde_json,
-    surf::{self, StatusCode},
+    surf::{self, StatusCode, Url},
 };
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
 
 impl NuGetClient {
-    pub async fn metadata(
+    pub async fn registration_page(self, page: impl AsRef<str>) -> Result<RegistrationPage, NuGetApiError> {
+        use NuGetApiError::*;
+        let url = Url::parse(page.as_ref())?;
+        let req = surf::get(url.clone());
+
+        let mut res = self
+            .client
+            .send(req)
+            .await
+            .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+
+        match res.status() {
+            StatusCode::Ok => {
+                let body = res
+                    .body_string()
+                    .await
+                    .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+                Ok(
+                    serde_json::from_str(&body).map_err(|e| NuGetApiError::BadJson {
+                        source: e,
+                        url: url.into(),
+                        json: Arc::new(body),
+                    })?,
+                )
+            }
+            StatusCode::NotFound => Err(RegistrationPageNotFound),
+            code => Err(BadResponse(code)),
+        }
+    }
+
+    pub async fn registration(
         self,
         package_id: impl AsRef<str>,
     ) -> Result<RegistrationIndex, NuGetApiError> {
         use NuGetApiError::*;
         let url = self
             .endpoints
-            .metadata
+            .registration
             .clone()
             .ok_or_else(|| UnsupportedEndpoint("RegistrationsBaseUrl/3.6.0".into()))?
             .join(&format!(
@@ -65,9 +95,12 @@ pub struct RegistrationIndex {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RegistrationPage {
+    #[serde(rename = "@id")]
+    pub id: String,
+    pub parent: String,
     /// The number of registration leaves in the page.
     pub count: usize,
-    pub items: Vec<RegistrationLeaf>,
+    pub items: Option<Vec<RegistrationLeaf>>,
     pub lower: String,
     pub upper: String,
 }

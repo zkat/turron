@@ -30,12 +30,12 @@ pub struct ViewCmd {
 impl RuGetCommand for ViewCmd {
     async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone()).await?;
-        let registration = client.metadata(&self.package_id).await?;
+        let index = client.registration(&self.package_id).await?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(
                 "{}",
-                serde_json::to_string_pretty(&registration)
+                serde_json::to_string_pretty(&index)
                     .into_diagnostic(&"ruget::view::json_serialization")?
             );
         } else if !self.quiet {
