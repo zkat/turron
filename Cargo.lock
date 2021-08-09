@@ -1240,6 +1240,7 @@ name = "nuget-api"
 version = "0.1.0"
 dependencies = [
  "ruget-common",
+ "ruget-semver",
  "serde 1.0.127",
 ]
 
@@ -1683,6 +1684,7 @@ dependencies = [
  "nuget-api",
  "ruget-command",
  "ruget-common",
+ "ruget-semver",
 ]
 
 [[package]]

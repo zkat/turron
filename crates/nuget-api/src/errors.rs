@@ -138,8 +138,8 @@ impl NuGetApiError {
                     source_name: url.clone(),
                     source: json.clone(),
                     context: SourceSpan {
-                        start: (offset - cmp::min(35, offset)).into(),
-                        end: (offset + cmp::min(35, len - offset) - 1).into(),
+                        start: (offset - cmp::min(40, offset)).into(),
+                        end: (offset + cmp::min(40, len - offset) - 1).into(),
                     },
                     highlights: Some(vec![(
                         "here".into(),
