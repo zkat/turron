@@ -13,7 +13,10 @@ use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
 
 impl NuGetClient {
-    pub async fn registration_page(&self, page: impl AsRef<str>) -> Result<RegistrationPage, NuGetApiError> {
+    pub async fn registration_page(
+        &self,
+        page: impl AsRef<str>,
+    ) -> Result<RegistrationPage, NuGetApiError> {
         use NuGetApiError::*;
         let url = Url::parse(page.as_ref())?;
         let req = surf::get(url.clone());
@@ -172,7 +175,7 @@ pub struct DependencyGroup {
     pub dependencies: Option<Vec<Dependency>>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Dependency {
     pub id: String,

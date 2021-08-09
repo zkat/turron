@@ -4,6 +4,7 @@ use ruget_common::miette_utils::DiagnosticResult as Result;
 pub use async_trait;
 pub use clap;
 pub use log;
+pub use owo_colors;
 pub use ruget_config;
 pub use serde_json;
 

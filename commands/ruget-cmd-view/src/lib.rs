@@ -1,4 +1,4 @@
-use nuget_api::v3::{NuGetClient, RegistrationIndex, RegistrationLeaf};
+use nuget_api::v3::{NuGetClient, RegistrationIndex, RegistrationLeaf, Tags};
 use ruget_command::{
     async_trait::async_trait,
     clap::{self, Clap},
@@ -7,11 +7,13 @@ use ruget_command::{
     serde_json, RuGetCommand,
 };
 use ruget_common::{
+    chrono_humanize::HumanTime,
     miette::Diagnostic,
     miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
     thiserror::{self, Error},
 };
 use ruget_semver::VersionReq;
+use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct ViewCmd {
@@ -39,7 +41,7 @@ pub struct ViewCmd {
 #[async_trait]
 impl RuGetCommand for ViewCmd {
     async fn execute(self) -> Result<()> {
-        let (_index, leaf) = self.find_version().await?;
+        let (index, leaf) = self.find_version().await?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(
@@ -48,6 +50,7 @@ impl RuGetCommand for ViewCmd {
                     .into_diagnostic(&"ruget::view::json_serialization")?
             );
         } else if !self.quiet {
+            self.print_info(&index, &leaf);
         }
         Ok(())
     }
@@ -80,6 +83,126 @@ impl ViewCmd {
         Err(Box::new(ViewError::VersionNotFound(
             self.package_req.clone(),
         )))
+    }
+
+    fn print_info(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {
+        self.print_header(index, leaf);
+        println!();
+        self.print_tags(leaf);
+        println!();
+        self.print_nupkg_details(leaf);
+        println!();
+        self.print_dependencies(leaf);
+        println!();
+        self.print_publish_time(leaf);
+    }
+
+    fn print_header(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {
+        let mut total_versions = 0usize;
+        for page in &index.items {
+            total_versions += page.count;
+        }
+        let entry = &leaf.catalog_entry;
+        let total_deps = 0;
+        println!(
+            "{}@{} | {} | deps: {} | versions: {}",
+            entry.id,
+            entry.version,
+            entry
+                .license_expression
+                .clone()
+                .unwrap_or_else(|| "Unknown license".into()),
+            total_deps,
+            total_versions
+        );
+        if let Some(desc) = &entry.description {
+            println!("{}", desc);
+        }
+        if let Some(url) = &entry.project_url {
+            println!("{}", url);
+        }
+        if let Some(_depr) = &entry.deprecation {
+            // TODO: add details/message.
+            println!("⚠ This version is deprecated.");
+        }
+    }
+
+    fn print_tags(&self, leaf: &RegistrationLeaf) {
+        let entry = &leaf.catalog_entry;
+        match &entry.tags {
+            Some(Tags::One(tag)) => {
+                println!("Tags: {}", tag);
+            }
+            Some(Tags::Many(tags)) => {
+                println!("Tags: {}", tags.join(", "));
+            }
+            None => {}
+        }
+    }
+
+    fn print_nupkg_details(&self, leaf: &RegistrationLeaf) {
+        println!("nupkg: {}", leaf.package_content);
+        // TODO: How tf do I get the nupkg hash?...
+    }
+
+    fn print_dependencies(&self, leaf: &RegistrationLeaf) {
+        let entry = &leaf.catalog_entry;
+        if let Some(groups) = &entry.dependency_groups {
+            for group in groups {
+                if let Some(deps) = &group.dependencies {
+                    if !deps.is_empty() {
+                        println!(
+                            "Dependencies for {}:",
+                            group
+                                .target_framework
+                                .clone()
+                                .unwrap_or_else(|| "this package".into())
+                        );
+                        let max_deps = 25_usize;
+                        let mut grid = Grid::new(GridOptions {
+                            filling: Filling::Spaces(3),
+                            direction: Direction::TopToBottom,
+                        });
+                        let width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+                        let mut deps = deps.clone();
+                        deps.sort();
+                        let mut vals = Vec::new();
+                        for dep in deps.iter().take(max_deps) {
+                            let mut val = dep.id.clone();
+                            if let Some(range) = &dep.range {
+                                val.push_str(&format!(": {}", range));
+                            }
+                            vals.push(val.clone());
+                            grid.add(Cell::from(val));
+                        }
+                        if let Some(out) = grid.fit_into_width(width) {
+                            print!("{}", out);
+                        } else {
+                            // Too wide. Print one per line.
+                            for val in &vals {
+                                println!("{}", val);
+                            }
+                        }
+                        let count = deps.len();
+                        if count > max_deps {
+                            println!("(...and {} more)", count - max_deps);
+                        }
+                        println!();
+                    }
+                }
+            }
+        }
+    }
+
+    fn print_publish_time(&self, leaf: &RegistrationLeaf) {
+        let entry = &leaf.catalog_entry;
+        if let Some(published) = &entry.published {
+            println!(
+                "Published to {} {}",
+                self.source,
+                HumanTime::from(*published)
+            );
+        }
     }
 }
 
