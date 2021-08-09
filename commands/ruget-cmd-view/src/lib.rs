@@ -3,6 +3,7 @@ use ruget_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     log,
+    owo_colors::{colors::*, OwoColorize},
     ruget_config::{self, RuGetConfigLayer},
     serde_json, RuGetCommand,
 };
@@ -91,7 +92,6 @@ impl ViewCmd {
         self.print_tags(leaf);
         println!();
         self.print_nupkg_details(leaf);
-        println!();
         self.print_dependencies(leaf);
         println!();
         self.print_publish_time(leaf);
@@ -106,24 +106,27 @@ impl ViewCmd {
         let total_deps = 0;
         println!(
             "{}@{} | {} | deps: {} | versions: {}",
-            entry.id,
-            entry.version,
+            entry.id.fg::<BrightGreen>().underline(),
+            entry.version.to_string().fg::<BrightGreen>().underline(),
             entry
                 .license_expression
                 .clone()
-                .unwrap_or_else(|| "Unknown license".into()),
-            total_deps,
-            total_versions
+                .unwrap_or_else(|| "Proprietary".into())
+                .fg::<Green>(),
+            total_deps.to_string().fg::<Yellow>(),
+            total_versions.to_string().fg::<Yellow>(),
         );
         if let Some(desc) = &entry.description {
             println!("{}", desc);
         }
         if let Some(url) = &entry.project_url {
-            println!("{}", url);
+            println!("{}", url.fg::<Cyan>());
         }
-        if let Some(_depr) = &entry.deprecation {
-            // TODO: add details/message.
-            println!("⚠ This version is deprecated.");
+        if let Some(depr) = &entry.deprecation {
+            print!("⚠ {}", "DEPRECATED".bright_red());
+            if let Some(msg) = &depr.message {
+                print!(" - {}", msg);
+            }
         }
     }
 
@@ -131,17 +134,23 @@ impl ViewCmd {
         let entry = &leaf.catalog_entry;
         match &entry.tags {
             Some(Tags::One(tag)) => {
-                println!("Tags: {}", tag);
+                println!("Tags: {}", tag.fg::<Yellow>());
             }
             Some(Tags::Many(tags)) => {
-                println!("Tags: {}", tags.join(", "));
+                println!(
+                    "Tags: {}",
+                    tags.iter()
+                        .map(|t| t.fg::<Yellow>().to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
             }
             None => {}
         }
     }
 
     fn print_nupkg_details(&self, leaf: &RegistrationLeaf) {
-        println!("nupkg: {}", leaf.package_content);
+        println!("Nupkg: {}", leaf.package_content.fg::<Cyan>());
         // TODO: How tf do I get the nupkg hash?...
     }
 
@@ -152,11 +161,12 @@ impl ViewCmd {
                 if let Some(deps) = &group.dependencies {
                     if !deps.is_empty() {
                         println!(
-                            "Dependencies for {}:",
+                            "\nDependencies for {}:",
                             group
                                 .target_framework
                                 .clone()
                                 .unwrap_or_else(|| "this package".into())
+                                .fg::<BrightCyan>()
                         );
                         let max_deps = 25_usize;
                         let mut grid = Grid::new(GridOptions {
@@ -168,7 +178,7 @@ impl ViewCmd {
                         deps.sort();
                         let mut vals = Vec::new();
                         for dep in deps.iter().take(max_deps) {
-                            let mut val = dep.id.clone();
+                            let mut val = dep.id.clone().fg::<Yellow>().to_string();
                             if let Some(range) = &dep.range {
                                 val.push_str(&format!(": {}", range));
                             }
@@ -187,7 +197,6 @@ impl ViewCmd {
                         if count > max_deps {
                             println!("(...and {} more)", count - max_deps);
                         }
-                        println!();
                     }
                 }
             }
@@ -199,8 +208,8 @@ impl ViewCmd {
         if let Some(published) = &entry.published {
             println!(
                 "Published to {} {}",
-                self.source,
-                HumanTime::from(*published)
+                self.source.fg::<Cyan>(),
+                HumanTime::from(*published).to_string().fg::<Yellow>()
             );
         }
     }
