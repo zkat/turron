@@ -178,6 +178,7 @@ pub struct Version {
     major: u64,
     minor: u64,
     patch: u64,
+    revision: u64,
     build: Vec<Identifier>,
     pre_release: Vec<Identifier>,
 }
@@ -223,6 +224,7 @@ impl PartialEq for Version {
         self.major == other.major
             && self.minor == other.minor
             && self.patch == other.patch
+            && self.revision == other.revision
             && self.pre_release == other.pre_release
     }
 }
@@ -234,6 +236,7 @@ impl std::hash::Hash for Version {
         self.major.hash(state);
         self.minor.hash(state);
         self.patch.hash(state);
+        self.revision.hash(state);
         self.pre_release.hash(state);
     }
 }
@@ -277,6 +280,10 @@ impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.patch)?;
 
+        if self.revision > 0 {
+            write!(f, ".{}", self.revision)?;
+        }
+
         for (i, ident) in self.pre_release.iter().enumerate() {
             if i == 0 {
                 write!(f, "-")?;
@@ -305,6 +312,20 @@ impl std::convert::From<(u64, u64, u64)> for Version {
             major,
             minor,
             patch,
+            revision: 0,
+            build: Vec::new(),
+            pre_release: Vec::new(),
+        }
+    }
+}
+
+impl std::convert::From<(u64, u64, u64, u64)> for Version {
+    fn from((major, minor, patch, revision): (u64, u64, u64, u64)) -> Self {
+        Version {
+            major,
+            minor,
+            patch,
+            revision,
             build: Vec::new(),
             pre_release: Vec::new(),
         }
@@ -318,12 +339,13 @@ impl std::str::FromStr for Version {
     }
 }
 
-impl std::convert::From<(u64, u64, u64, u64)> for Version {
-    fn from((major, minor, patch, pre_release): (u64, u64, u64, u64)) -> Self {
+impl std::convert::From<(u64, u64, u64, u64, u64)> for Version {
+    fn from((major, minor, patch, revision, pre_release): (u64, u64, u64, u64, u64)) -> Self {
         Version {
             major,
             minor,
             patch,
+            revision,
             build: Vec::new(),
             pre_release: vec![Identifier::Numeric(pre_release)],
         }
@@ -353,6 +375,12 @@ impl cmp::Ord for Version {
         match self.patch.cmp(&other.patch) {
             Ordering::Equal => {}
             //if difference in patch version, just return result
+            order_result => return order_result,
+        }
+
+        match self.revision.cmp(&other.revision) {
+            Ordering::Equal => {}
+            //if difference in revision, just return result
             order_result => return order_result,
         }
 
@@ -390,15 +418,16 @@ impl Extras {
 ///                 | <version core> "-" <pre-release>
 ///                 | <version core> "+" <build>
 ///                 | <version core> "-" <pre-release> "+" <build>
-fn version(input: &str) -> IResult<&str, Version, SemverParseError<&str>> {
+pub(crate) fn version(input: &str) -> IResult<&str, Version, SemverParseError<&str>> {
     context(
         "version",
         map(
             tuple((version_core, extras)),
-            |((major, minor, patch), (pre_release, build))| Version {
+            |((major, minor, patch, revision), (pre_release, build))| Version {
                 major,
                 minor,
                 patch,
+                revision,
                 pre_release,
                 build,
             },
@@ -423,13 +452,23 @@ fn extras(
 }
 
 /// <version core> ::= <major> "." <minor> "." <patch>
-fn version_core(input: &str) -> IResult<&str, (u64, u64, u64), SemverParseError<&str>> {
+fn version_core(input: &str) -> IResult<&str, (u64, u64, u64, u64), SemverParseError<&str>> {
     context(
         "version core",
-        map(
-            tuple((number, tag("."), number, tag("."), number)),
-            |(major, _, minor, _, patch)| (major, minor, patch),
-        ),
+        alt((
+            map(
+                tuple((number, tag("."), number, tag("."), number, tag("."), number)),
+                |(major, _, minor, _, patch, _, revision)| (major, minor, patch, revision),
+            ),
+            map(
+                tuple((number, tag("."), number, tag("."), number)),
+                |(major, _, minor, _, patch)| (major, minor, patch, 0),
+            ),
+            map(tuple((number, tag("."), number)), |(major, _, minor)| {
+                (major, minor, 0, 0)
+            }),
+            map(number, |major| (major, 0, 0, 0)),
+        )),
     )(input)
 }
 
@@ -503,6 +542,7 @@ mod tests {
                 major: 1,
                 minor: 2,
                 patch: 34,
+                revision: 0,
                 build: Vec::new(),
                 pre_release: Vec::new(),
             }
@@ -519,6 +559,7 @@ mod tests {
                 major: 1,
                 minor: 2,
                 patch: 34,
+                revision: 0,
                 build: vec![Numeric(123), Numeric(456)],
                 pre_release: Vec::new(),
             }
@@ -535,6 +576,7 @@ mod tests {
                 major: 1,
                 minor: 2,
                 patch: 34,
+                revision: 0,
                 pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
                 build: Vec::new(),
             }
@@ -551,6 +593,7 @@ mod tests {
                 major: 1,
                 minor: 2,
                 patch: 34,
+                revision: 0,
                 pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
                 build: vec![Numeric(1),]
             }
@@ -567,6 +610,7 @@ mod tests {
                 major: 1,
                 minor: 0,
                 patch: 0,
+                revision: 0,
                 pre_release: vec![
                     Identifier::AlphaNumeric("rc".into()),
                     Identifier::AlphaNumeric("2-migration".into())
@@ -582,6 +626,7 @@ mod tests {
             major: 1,
             minor: 2,
             patch: 34,
+            revision: 0,
             pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
             build: vec![],
         };
@@ -589,6 +634,7 @@ mod tests {
             major: 2,
             minor: 2,
             patch: 34,
+            revision: 0,
             pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
             build: vec![],
         };
@@ -601,6 +647,7 @@ mod tests {
             major: 1,
             minor: 2,
             patch: 34,
+            revision: 0,
             pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
             build: vec![],
         };
@@ -608,6 +655,7 @@ mod tests {
             major: 1,
             minor: 3,
             patch: 34,
+            revision: 0,
             pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
             build: vec![],
         };
@@ -621,6 +669,7 @@ mod tests {
             major: 1,
             minor: 2,
             patch: 34,
+            revision: 0,
             pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
             build: vec![],
         };
@@ -628,6 +677,7 @@ mod tests {
             major: 1,
             minor: 2,
             patch: 56,
+            revision: 0,
             pre_release: vec![AlphaNumeric("abc".into()), Numeric(123)],
             build: vec![],
         };
@@ -644,6 +694,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("alpha".into())],
             build: vec![],
         };
@@ -651,6 +702,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("alpha".into()), Numeric(1)],
             build: vec![],
         };
@@ -659,6 +711,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("alpha".into()), AlphaNumeric("beta".into())],
             build: vec![],
         };
@@ -667,6 +720,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("beta".into())],
             build: vec![],
         };
@@ -675,6 +729,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("beta".into()), Numeric(2)],
             build: vec![],
         };
@@ -683,6 +738,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("beta".into()), Numeric(11)],
             build: vec![],
         };
@@ -691,6 +747,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![AlphaNumeric("rc".into()), Numeric(1)],
             build: vec![],
         };
@@ -699,6 +756,7 @@ mod tests {
             major: 1,
             minor: 0,
             patch: 0,
+            revision: 0,
             pre_release: vec![],
             build: vec![],
         };
@@ -743,6 +801,7 @@ mod tests {
                 major: 1,
                 minor: 2,
                 patch: 34,
+                revision: 0,
                 pre_release: vec![
                     Identifier::AlphaNumeric("abc".into()),
                     Identifier::Numeric(213)
@@ -759,6 +818,7 @@ mod tests {
                 major: 1,
                 minor: 2,
                 patch: 34,
+                revision: 0,
                 pre_release: vec![
                     Identifier::AlphaNumeric("abc".into()),
                     Identifier::Numeric(213),
