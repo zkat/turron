@@ -3,7 +3,7 @@ use std::fmt;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::space0;
+use nom::character::complete::{space0, space1};
 use nom::combinator::{all_consuming, map, map_opt, opt};
 use nom::error::context;
 use nom::multi::separated_list1;
@@ -16,6 +16,7 @@ use crate::{extras, number, Identifier, SemverError, SemverErrorKind, SemverPars
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 struct Range {
+    floating: bool,
     upper: Bound,
     lower: Bound,
 }
@@ -33,12 +34,22 @@ impl Range {
                 None
             }
             (Lower(Including(v1)), Upper(Including(v2))) if v1 == v2 => Some(Self {
+                floating: true,
                 lower: Lower(Including(v1)),
                 upper: Upper(Including(v2)),
             }),
-            (lower, upper) if lower < upper => Some(Self { lower, upper }),
+            (lower, upper) if lower <= upper => Some(Self {
+                floating: true,
+                lower,
+                upper,
+            }),
             _ => None,
         }
+    }
+
+    fn floating(mut self, floating: bool) -> Self {
+        self.floating = floating;
+        self
     }
 
     fn at_least(p: Predicate) -> Option<Self> {
@@ -145,7 +156,7 @@ impl fmt::Display for Range {
             (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "<{}", v),
             (Lower(Including(v)), Upper(Unbounded)) => write!(f, ">={}", v),
             (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, ">{}", v),
-            (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "{}", v),
+            (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "={}", v),
             (Lower(Including(v)), Upper(Including(v2))) => write!(f, ">={} <={}", v, v2),
             (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, ">={} <{}", v, v2),
             (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, ">{} <={}", v, v2),
@@ -448,14 +459,118 @@ fn predicates(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
         "predicate alternatives",
         alt((
             hyphenated_range,
+            brackets_range,
             x_and_asterisk_version,
-            no_operation_followed_by_version,
+            plain_version_range,
             any_operation_followed_by_version,
             caret,
             tilde,
             wildcard,
         )),
     )(input)
+}
+
+fn plain_version_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+    context(
+        "plain version range",
+        map_opt(
+            partial_version,
+            |(major, minor, patch, revision, pre_release, build)| {
+                Range::new(
+                    Bound::Lower(Predicate::Including(Version {
+                        major,
+                        minor: minor.unwrap_or(0),
+                        patch: patch.unwrap_or(0),
+                        revision: revision.unwrap_or(0),
+                        pre_release,
+                        build,
+                    })),
+                    Bound::upper(),
+                )
+                .map(|r| r.floating(false))
+            },
+        ),
+    )(input)
+}
+
+fn brackets_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+    context(
+        "brackets",
+        map_opt(
+            tuple((
+                open_bracket,
+                space0,
+                opt(partial_version),
+                space0,
+                opt(tag(",")),
+                space0,
+                opt(partial_version),
+                space0,
+                close_bracket,
+            )),
+            |(open, _, lower, _, comma, _, upper, _, close)| {
+                let lower_bound = if let Some(lower) = &lower {
+                    let version = Version {
+                        major: lower.0,
+                        minor: lower.1.unwrap_or(0),
+                        patch: lower.2.unwrap_or(0),
+                        revision: lower.3.unwrap_or(0),
+                        pre_release: lower.4.clone(),
+                        build: lower.5.clone(),
+                    };
+                    Bound::Lower(match open {
+                        "(" => Predicate::Excluding(version),
+                        "[" => Predicate::Including(version),
+                        _ => unreachable!(),
+                    })
+                } else {
+                    Bound::lower()
+                };
+                let upper_bound = if let Some(upper) = upper {
+                    let version = Version {
+                        major: upper.0,
+                        minor: upper.1.unwrap_or(0),
+                        patch: upper.2.unwrap_or(0),
+                        revision: upper.3.unwrap_or(0),
+                        pre_release: upper.4,
+                        build: upper.5,
+                    };
+                    Bound::Upper(match close {
+                        ")" => Predicate::Excluding(version),
+                        "]" => Predicate::Including(version),
+                        _ => unreachable!(),
+                    })
+                } else if comma.is_some() {
+                    Bound::upper()
+                } else if let Some(lower) = &lower {
+                    let version = Version {
+                        major: lower.0,
+                        minor: lower.1.unwrap_or(0),
+                        patch: lower.2.unwrap_or(0),
+                        revision: lower.3.unwrap_or(0),
+                        pre_release: lower.4.clone(),
+                        build: lower.5.clone(),
+                    };
+                    Bound::Upper(match close {
+                        ")" => Predicate::Excluding(version),
+                        "]" => Predicate::Including(version),
+                        _ => unreachable!(),
+                    })
+                } else {
+                    return None;
+                };
+                Range::new(lower_bound, upper_bound).map(|x| x.floating(false))
+            },
+        ),
+    )(input)
+}
+
+fn open_bracket(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
+    context("opening bracket", alt((tag("["), tag("("))))(input)
+}
+
+fn close_bracket(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
+    context("closing bracket", alt((tag("]"), tag(")"))))(input)
 }
 
 fn wildcard(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
@@ -675,7 +790,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
 fn x_and_asterisk_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     context(
         "minor X patch X",
-        map(
+        map_opt(
             tuple((
                 number,
                 preceded(
@@ -689,9 +804,9 @@ fn x_and_asterisk_version(input: &str) -> IResult<&str, Range, SemverParseError<
                     )),
                 ),
             )),
-            |(major, maybe_minor)| Range {
-                upper: upper_bound(major, maybe_minor),
-                lower: lower_bound(major, maybe_minor),
+            |(major, maybe_minor)| {
+                Range::new(lower_bound(major, maybe_minor), Bound::upper())
+                    .map(|x| x.floating(false))
             },
         ),
     )(input)
@@ -703,13 +818,13 @@ fn lower_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
     ))
 }
 
-fn upper_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
-    if let Some(minor) = maybe_minor {
-        Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into()))
-    } else {
-        Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into()))
-    }
-}
+// fn upper_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
+//     if let Some(minor) = maybe_minor {
+//         Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into()))
+//     } else {
+//         Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into()))
+//     }
+// }
 
 fn caret(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     context(
@@ -889,26 +1004,26 @@ fn hyphenated_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>>
     )(input)
 }
 
-fn no_operation_followed_by_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
-    context(
-        "major and minor",
-        map_opt(partial_version, |parsed| match parsed {
-            (major, Some(minor), Some(patch), Some(revision), _, _) => {
-                Range::exact((major, minor, patch, revision).into())
-            }
-            (major, Some(minor), Some(patch), None, _, _) => {
-                Range::exact((major, minor, patch, 0).into())
-            }
-            (major, maybe_minor, _, _, _, _) => Range::new(
-                lower_bound(major, maybe_minor),
-                upper_bound(major, maybe_minor),
-            ),
-        }),
-    )(input)
-}
+// fn no_operation_followed_by_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+//     context(
+//         "major and minor",
+//         map_opt(partial_version, |parsed| match parsed {
+//             (major, Some(minor), Some(patch), Some(revision), _, _) => {
+//                 Range::exact((major, minor, patch, revision).into())
+//             }
+//             (major, Some(minor), Some(patch), None, _, _) => {
+//                 Range::exact((major, minor, patch, 0).into())
+//             }
+//             (major, maybe_minor, _, _, _, _) => Range::new(
+//                 lower_bound(major, maybe_minor),
+//                 upper_bound(major, maybe_minor),
+//             ),
+//         }),
+//     )(input)
+// }
 
 fn spaced_hyphen(input: &str) -> IResult<&str, (), SemverParseError<&str>> {
-    map(tuple((space0, tag("-"), space0)), |_| ())(input)
+    map(tuple((space1, tag("-"), space1)), |_| ())(input)
 }
 
 fn operation(input: &str) -> IResult<&str, Operation, SemverParseError<&str>> {
@@ -969,7 +1084,7 @@ create_tests_for! {
     allows_all
 
     greater_than_eq_123   => ">=1.2.3", {
-        allows => [">=2.0.0", ">2", "2.0.0", "0.1 || 1.4", "1.2.3", "2 - 7", ">2.0.0"],
+        allows => [">=2.0.0", ">2", "=2.0.0", "0.1 || 1.4", "=1.2.3", "2 - 7", ">2.0.0"],
         denies => ["1.0.0", "<1.2", ">=1.2.2", "1 - 3", "0.1 || <1.2.0", ">1.0.0"],
     },
 
@@ -978,28 +1093,28 @@ create_tests_for! {
         denies => ["1.0.0", "<1.2", ">=1.2.3", "1 - 3", "0.1 || <1.2.0", "<=3"],
     },
 
-    eq_123  => "1.2.3", {
-        allows => ["1.2.3"],
-        denies => ["1.0.0", "<1.2", "1.x", ">=1.2.2", "1 - 3", "0.1 || <1.2.0"],
+    eq_123  => "=1.2.3", {
+        allows => ["=1.2.3"],
+        denies => ["=1.0.0", "<1.2", "1.x", ">=1.2.2", "1 - 3", "0.1 || <1.2.0", "1.2.3"],
     },
 
     lt_123  => "<1.2.3", {
-        allows => ["<=1.2.0", "<1", "1.0.0", "0.1 || 1.4"],
+        allows => ["<=1.2.0", "<1", "=1.0.0", "^0.1 || ^1.4"],
         denies => ["1 - 3", ">1", "2.0.0", "2.0 || >9", ">1.0.0"],
     },
 
     lt_eq_123 => "<=1.2.3", {
-        allows => ["<=1.2.0", "<1", "1.0.0", "0.1 || 1.4", "1.2.3"],
+        allows => ["<=1.2.0", "<1", "=1.0.0", "^0.1 || ^1.4", "=1.2.3"],
         denies => ["1 - 3", ">1.0.0", ">=1.0.0"],
     },
 
-    eq_123_or_gt_400  => "1.2.3 || >4", {
-        allows => [ "1.2.3", ">4", "5.x", "5.2.x", ">=8.2.1", "2.0 || 5.6.7"],
-        denies => ["<2", "1 - 7", "1.9.4 || 2-3"],
+    eq_123_or_gt_400  => ">=1.2.3 || >4", {
+        allows => [ "=1.2.3", ">4", "5.x", "5.2.x", ">=8.2.1", "2.0 || =5.6.7"],
+        denies => ["<2", "1 - 7"],
     },
 
     between_two_and_eight => "2 - 8", {
-        allows => [ "2.2.3", "4 - 5"],
+        allows => [ "=2.2.3", "4 - 5"],
         denies => ["1 - 4", "5 - 9", ">3", "<=5"],
     },
 }
@@ -1010,22 +1125,22 @@ create_tests_for! {
 
     greater_than_eq_123   => ">=1.2.3", {
         allows => ["<=1.2.4", "3.0.0", "<2", ">=3", ">3.0.0"],
-        denies => ["<=1.2.0", "1.0.0", "<1", "<=1.2"],
+        denies => ["<=1.2.0", "=1.0.0", "<1", "<=1.2"],
     },
 
     greater_than_123   => ">1.2.3", {
         allows => ["<=1.2.4", "3.0.0", "<2", ">=3", ">3.0.0"],
-        denies => ["<=1.2.3", "1.0.0", "<1", "<=1.2"],
+        denies => ["<=1.2.3", "=1.0.0", "<1", "<=1.2"],
     },
 
-    eq_123   => "1.2.3", {
-        allows => ["1.2.3", "1 - 2"],
-        denies => ["<1.2.3", "1.0.0", "<=1.2", ">4.5.6", ">5"],
+    eq_123   => "=1.2.3", {
+        allows => ["=1.2.3", "1 - 2", "1.2.3"],
+        denies => ["<1.2.3", "=1.0.0", "<=1.2", ">4.5.6", ">5"],
     },
 
     lt_eq_123  => "<=1.2.3", {
-        allows => ["<=1.2.0", "<1.0.0", "1.0.0", ">1.0.0", ">=1.2.0"],
-        denies => ["4.5.6", ">2.0.0", ">=2.0.0"],
+        allows => ["<=1.2.0", "<1.0.0", "=1.0.0", ">1.0.0", ">=1.2.0"],
+        denies => [">=4.5.6", ">2.0.0", ">=2.0.0"],
     },
 
     lt_123  => "<1.2.3", {
@@ -1038,9 +1153,9 @@ create_tests_for! {
         denies => [">10", "10 - 11", "0 - 1"],
     },
 
-    eq_123_or_gt_400  => "1.2.3 || >4", {
-        allows => [ "1.2.3", ">3", "5.x", "5.2.x", ">=8.2.1", "2 - 7", "2.0 || 5.6.7"],
-        denies => [ "1.9.4 || 2-3"],
+    eq_123_or_gt_400  => "=1.2.3 || >4", {
+        allows => [ "=1.2.3", ">3", "5.x", "5.2.x", ">=8.2.1", "2 - 7", "2.0 || 5.6.7"],
+        denies => [ "=1.9.4 || 2 - 3"],
     },
 }
 
@@ -1063,9 +1178,9 @@ mod intersection {
             (">2.0.0", Some(">2.0.0")),
             (">1.0.0", Some(">=1.2.3")),
             (">1.2.3", Some(">1.2.3")),
-            ("<=1.2.3", Some("1.2.3")),
-            ("2.0.0", Some("2.0.0")),
-            ("1.1.1", None),
+            ("<=1.2.3", Some("=1.2.3")),
+            ("=2.0.0", Some("=2.0.0")),
+            ("=1.1.1", None),
             ("<1.0.0", None),
         ];
 
@@ -1081,10 +1196,10 @@ mod intersection {
             ("<2.0.0", Some(">1.2.3 <2.0.0")),
             (">=2.0.0", Some(">=2.0.0")),
             (">2.0.0", Some(">2.0.0")),
-            ("2.0.0", Some("2.0.0")),
+            ("=2.0.0", Some("=2.0.0")),
             (">1.2.3", Some(">1.2.3")),
             ("<=1.2.3", None),
-            ("1.1.1", None),
+            ("=1.1.1", None),
             ("<1.0.0", None),
         ];
 
@@ -1093,18 +1208,18 @@ mod intersection {
 
     #[test]
     fn eq_123() {
-        let base_range = v("1.2.3");
+        let base_range = v("=1.2.3");
 
         let samples = vec![
-            ("<=2.0.0", Some("1.2.3")),
-            ("<2.0.0", Some("1.2.3")),
+            ("<=2.0.0", Some("=1.2.3")),
+            ("<2.0.0", Some("=1.2.3")),
             (">=2.0.0", None),
             (">2.0.0", None),
-            ("2.0.0", None),
-            ("1.2.3", Some("1.2.3")),
+            ("=2.0.0", None),
+            ("=1.2.3", Some("=1.2.3")),
             (">1.2.3", None),
-            ("<=1.2.3", Some("1.2.3")),
-            ("1.1.1", None),
+            ("<=1.2.3", Some("=1.2.3")),
+            ("=1.1.1", None),
             ("<1.0.0", None),
         ];
 
@@ -1121,11 +1236,11 @@ mod intersection {
             (">=2.0.0", None),
             (">=1.0.0", Some(">=1.0.0 <1.2.3")),
             (">2.0.0", None),
-            ("2.0.0", None),
-            ("1.2.3", None),
+            ("=2.0.0", None),
+            ("=1.2.3", None),
             (">1.2.3", None),
             ("<=1.2.3", Some("<1.2.3")),
-            ("1.1.1", Some("1.1.1")),
+            ("=1.1.1", Some("=1.1.1")),
             ("<1.0.0", Some("<1.0.0")),
         ];
 
@@ -1142,11 +1257,11 @@ mod intersection {
             (">=2.0.0", None),
             (">=1.0.0", Some(">=1.0.0 <=1.2.3")),
             (">2.0.0", None),
-            ("2.0.0", None),
-            ("1.2.3", Some("1.2.3")),
+            ("=2.0.0", None),
+            ("=1.2.3", Some("=1.2.3")),
             (">1.2.3", None),
             ("<=1.2.3", Some("<=1.2.3")),
-            ("1.1.1", Some("1.1.1")),
+            ("=1.1.1", Some("=1.1.1")),
             ("<1.0.0", Some("<1.0.0")),
         ];
 
@@ -1155,7 +1270,7 @@ mod intersection {
 
     #[test]
     fn multiple() {
-        let base_range = v("<1 || 3-4");
+        let base_range = v("<1 || 3 - 4");
 
         let samples = vec![("0.5 - 3.5.0", Some(">=0.5.0 <1.0.0||>=3.0.0 <=3.5.0"))];
 
@@ -1196,11 +1311,11 @@ mod difference {
             (">=2.0.0", Some(">=1.2.3 <2.0.0")),
             (">2.0.0", Some(">=1.2.3 <=2.0.0")),
             (">1.0.0", None),
-            (">1.2.3", Some("1.2.3")),
+            (">1.2.3", Some("=1.2.3")),
             ("<=1.2.3", Some(">1.2.3")),
-            ("1.1.1", Some(">=1.2.3")),
+            ("=1.1.1", Some(">=1.2.3")),
             ("<1.0.0", Some(">=1.2.3")),
-            ("2.0.0", Some(">=1.2.3 <2.0.0||>2.0.0")),
+            ("=2.0.0", Some(">=1.2.3 <2.0.0||>2.0.0")),
         ];
 
         assert_ranges_match(base_range, samples);
@@ -1218,9 +1333,9 @@ mod difference {
             (">1.0.0", None),
             (">1.2.3", None),
             ("<=1.2.3", Some(">1.2.3")),
-            ("1.1.1", Some(">1.2.3")),
+            ("=1.1.1", Some(">1.2.3")),
             ("<1.0.0", Some(">1.2.3")),
-            ("2.0.0", Some(">1.2.3 <2.0.0||>2.0.0")),
+            ("=2.0.0", Some(">1.2.3 <2.0.0||>2.0.0")),
         ];
 
         assert_ranges_match(base_range, samples);
@@ -1228,20 +1343,20 @@ mod difference {
 
     #[test]
     fn eq_123() {
-        let base_range = v("1.2.3");
+        let base_range = v("=1.2.3");
 
         let samples = vec![
             ("<=2.0.0", None),
             ("<2.0.0", None),
-            (">=2.0.0", Some("1.2.3")),
-            (">2.0.0", Some("1.2.3")),
+            (">=2.0.0", Some("=1.2.3")),
+            (">2.0.0", Some("=1.2.3")),
             (">1.0.0", None),
-            (">1.2.3", Some("1.2.3")),
-            ("1.2.3", None),
+            (">1.2.3", Some("=1.2.3")),
+            ("=1.2.3", None),
             ("<=1.2.3", None),
-            ("1.1.1", Some("1.2.3")),
-            ("<1.0.0", Some("1.2.3")),
-            ("2.0.0", Some("1.2.3")),
+            ("=1.1.1", Some("=1.2.3")),
+            ("<1.0.0", Some("=1.2.3")),
+            ("=2.0.0", Some("=1.2.3")),
         ];
 
         assert_ranges_match(base_range, samples);
@@ -1259,7 +1374,7 @@ mod difference {
             (">1.0.0", Some("<=1.0.0")),
             (">1.2.3", Some("<1.2.3")),
             ("<=1.2.3", None),
-            ("1.1.1", Some("<1.1.1||>1.1.1 <1.2.3")),
+            ("=1.1.1", Some("<1.1.1||>1.1.1 <1.2.3")),
             ("<1.0.0", Some(">=1.0.0 <1.2.3")),
             ("2.0.0", Some("<1.2.3")),
         ];
@@ -1279,7 +1394,7 @@ mod difference {
             (">1.0.0", Some("<=1.0.0")),
             (">1.2.3", Some("<=1.2.3")),
             ("<=1.2.3", None),
-            ("1.1.1", Some("<1.1.1||>1.1.1 <=1.2.3")),
+            ("=1.1.1", Some("<1.1.1||>1.1.1 <=1.2.3")),
             ("<1.0.0", Some(">=1.0.0 <=1.2.3")),
             ("2.0.0", Some("<=1.2.3")),
         ];
@@ -1289,9 +1404,9 @@ mod difference {
 
     #[test]
     fn multiple() {
-        let base_range = v("<1 || 3-4");
+        let base_range = v("<1 || 3 - 4");
 
-        let samples = vec![("0.5 - 3.5.0", Some("<0.5.0||>3.5.0 <4.0.0-0"))];
+        let samples = vec![("0.5 - 3.5.0", Some("<0.5.0||>3.5.0 <5.0.0-0"))];
 
         assert_ranges_match(base_range, samples);
     }
@@ -1385,8 +1500,8 @@ mod satisfies_ranges_tests {
         refute!(parsed.satisfies(&(0, 2, 3).into()), "major below");
         assert!(parsed.satisfies(&(1, 0, 0).into()), "exact bottom of range");
         assert!(parsed.satisfies(&(1, 2, 2).into()), "middle");
-        refute!(parsed.satisfies(&(2, 0, 0).into()), "exact top of range");
-        refute!(parsed.satisfies(&(2, 7, 3).into()), "above");
+        assert!(parsed.satisfies(&(2, 0, 0).into()), "exact top of range");
+        assert!(parsed.satisfies(&(2, 7, 3).into()), "above");
     }
 }
 
@@ -1416,26 +1531,33 @@ mod tests {
 
     range_parse_tests![
         //       [input,   parsed and then `to_string`ed]
-        exact => ["1.0.0", "1.0.0"],
+        exact => ["=1.0.0", "=1.0.0"],
+        plain_patch => ["1.0.0", ">=1.0.0"],
+        plain_minor => ["1.0", ">=1.0.0"],
+        plain_major => ["1", ">=1.0.0"],
+        major_minor_patch_brackets => ["[1.0.0,2.0.0)", ">=1.0.0 <2.0.0"],
+        major_minor_brackets => ["[1.0,2.0)", ">=1.0.0 <2.0.0"],
+        major_brackets => ["[1,2)", ">=1.0.0 <2.0.0"],
+        exact_brackets => ["[1.0.0]", "=1.0.0"],
         major_minor_patch_range => ["1.0.0 - 2.0.0", ">=1.0.0 <=2.0.0"],
         only_major_versions =>  ["1 - 2", ">=1.0.0 <3.0.0-0"],
         only_major_and_minor => ["1.0 - 2.0", ">=1.0.0 <2.1.0-0"],
         mixed_major_minor => ["1.2 - 3.4.5", ">=1.2.0 <=3.4.5"],
         mixed_major_minor_2 => ["1.2.3 - 3.4", ">=1.2.3 <3.5.0-0"],
         minor_minor_range => ["1.2 - 3.4", ">=1.2.0 <3.5.0-0"],
-        single_sided_only_major => ["1", ">=1.0.0 <2.0.0-0"],
+        single_sided_only_major => ["1", ">=1.0.0"],
         single_sided_lower_equals_bound =>  [">=1.0.0", ">=1.0.0"],
         single_sided_lower_equals_bound_2 => [">=0.1.97", ">=0.1.97"],
         single_sided_lower_bound => [">1.0.0", ">1.0.0"],
         single_sided_upper_equals_bound => ["<=2.0.0", "<=2.0.0"],
         single_sided_upper_equals_bound_with_minor => ["<=2.0", "<=2.0.0-0"],
         single_sided_upper_bound => ["<2.0.0", "<2.0.0"],
-        major_and_minor => ["2.3", ">=2.3.0 <2.4.0-0"],
-        major_dot_x => ["2.x", ">=2.0.0 <3.0.0-0"],
-        x_and_asterisk_version => ["2.x.x", ">=2.0.0 <3.0.0-0"],
-        patch_x => ["1.2.x", ">=1.2.0 <1.3.0-0"],
-        minor_asterisk_patch_asterisk => ["2.*.*", ">=2.0.0 <3.0.0-0"],
-        patch_asterisk => ["1.2.*", ">=1.2.0 <1.3.0-0"],
+        major_and_minor => ["2.3", ">=2.3.0"],
+        major_dot_x => ["2.x", ">=2.0.0"],
+        x_and_asterisk_version => ["2.x.x", ">=2.0.0"],
+        patch_x => ["1.2.x", ">=1.2.0"],
+        minor_asterisk_patch_asterisk => ["2.*.*", ">=2.0.0"],
+        patch_asterisk => ["1.2.*", ">=1.2.0"],
         caret_zero => ["^0", "<1.0.0-0"],
         caret_zero_minor => ["^0.1", ">=0.1.0 <0.2.0-0"],
         caret_one => ["^1.0", ">=1.0.0 <2.0.0-0"],
@@ -1454,11 +1576,11 @@ mod tests {
         less_than_one_dot_two => ["<1.2", "<1.2.0-0"],
         greater_than_one_dot_two => [">1.2", ">=1.3.0"],
         greater_than_with_prerelease => [">1.1.0-beta-10", ">1.1.0-beta-10"],
-        either_one_version_or_the_other => ["0.1.20 || 1.2.4", "0.1.20||1.2.4"],
+        either_one_version_or_the_other => ["0.1.20 || 1.2.4", ">=0.1.20||>=1.2.4"],
         either_one_version_range_or_another => [">=0.2.3 || <0.0.1", ">=0.2.3||<0.0.1"],
-        either_x_version_works => ["1.2.x || 2.x", ">=1.2.0 <1.3.0-0||>=2.0.0 <3.0.0-0"],
-        either_asterisk_version_works => ["1.2.* || 2.*", ">=1.2.0 <1.3.0-0||>=2.0.0 <3.0.0-0"],
-        one_two_three_or_greater_than_four => ["1.2.3 || >4", "1.2.3||>=5.0.0"],
+        either_x_version_works => ["1.2.x || 2.x", ">=1.2.0||>=2.0.0"],
+        either_asterisk_version_works => ["1.2.* || 2.*", ">=1.2.0||>=2.0.0"],
+        one_two_three_or_greater_than_four => ["1.2.3 || >4", ">=1.2.3||>=5.0.0"],
         any_version_asterisk => ["*", ">=0.0.0"],
         any_version_x => ["x", ">=0.0.0"],
         whitespace_1 => [">= 1.0.0", ">=1.0.0"],
