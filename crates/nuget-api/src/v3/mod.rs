@@ -11,8 +11,8 @@ use crate::errors::NuGetApiError;
 pub use registration::*;
 pub use search::*;
 
-mod registration;
 mod push;
+mod registration;
 mod relist;
 mod search;
 mod unlist;
@@ -45,15 +45,16 @@ impl NuGetEndpoints {
     }
 
     fn from_resources(resources: Vec<IndexResource>) -> Self {
+        let r = |res| Self::find_endpoint(&resources, res);
         NuGetEndpoints {
-            package_content: Self::find_endpoint(&resources, "PackageBaseAddress/3.0.0"),
-            publish: Self::find_endpoint(&resources, "PackagePublish/2.0.0"),
-            registration: Self::find_endpoint(&resources, "RegistrationsBaseUrl/3.6.0"),
-            search: Self::find_endpoint(&resources, "SearchQueryService/3.5.0"),
-            catalog: Self::find_endpoint(&resources, "Catalog/3.0.0"),
-            signatures: Self::find_endpoint(&resources, "RepositorySignatures/5.0.0"),
-            autocomplete: Self::find_endpoint(&resources, "SearchAutocompleteService/3.5.0"),
-            symbol_publish: Self::find_endpoint(&resources, "SymbolPackagePublish/4.9.0"),
+            package_content: r("PackageBaseAddress/3.0.0"),
+            publish: r("PackagePublish/2.0.0"),
+            registration: r("RegistrationsBaseUrl/3.6.0"),
+            search: r("SearchQueryService/3.5.0"),
+            catalog: r("Catalog/3.0.0"),
+            signatures: r("RepositorySignatures/5.0.0"),
+            autocomplete: r("SearchAutocompleteService/3.5.0"),
+            symbol_publish: r("SymbolPackagePublish/4.9.0"),
         }
     }
 }
