@@ -8,7 +8,7 @@ use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while;
 use nom::character::complete::digit1;
 use nom::character::is_alphanumeric;
-use nom::combinator::{all_consuming, map, map_res, opt, recognize};
+use nom::combinator::{all_consuming, cut, map, map_res, opt, recognize};
 use nom::error::{context, ContextError, ErrorKind, FromExternalError, ParseError};
 use nom::multi::separated_list1;
 use nom::sequence::{preceded, tuple};
@@ -507,14 +507,14 @@ fn version_core(input: &str) -> IResult<&str, (u64, u64, u64, u64), SemverParseE
         "version core",
         alt((
             map(
-                tuple((number, tag("."), number, tag("."), number, tag("."), number)),
+                tuple((number, tag("."), cut(number), tag("."), cut(number), tag("."), cut(number))),
                 |(major, _, minor, _, patch, _, revision)| (major, minor, patch, revision),
             ),
             map(
-                tuple((number, tag("."), number, tag("."), number)),
+                tuple((number, tag("."), cut(number), tag("."), cut(number))),
                 |(major, _, minor, _, patch)| (major, minor, patch, 0),
             ),
-            map(tuple((number, tag("."), number)), |(major, _, minor)| {
+            map(tuple((number, tag("."), cut(number))), |(major, _, minor)| {
                 (major, minor, 0, 0)
             }),
             map(number, |major| (major, 0, 0, 0)),
