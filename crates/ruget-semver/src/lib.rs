@@ -501,7 +501,7 @@ fn extras(
     )(input)
 }
 
-/// <version core> ::= <major> "." <minor> "." <patch>
+/// <version core> ::= <major> "." <minor> "." <patch> "." <revision>
 fn version_core(input: &str) -> IResult<&str, (u64, u64, u64, u64), SemverParseError<&str>> {
     context(
         "version core",
@@ -888,6 +888,42 @@ mod tests {
         })
         .unwrap();
         let expected: String = r#"{"version":"1.2.34-abc.213+2"}"#.into();
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn serialize_a_version_with_rev_0_to_string() {
+        let output = serde_json::to_string(&Versioned {
+            version: Version {
+                major: 1,
+                minor: 2,
+                patch: 34,
+                revision: 0,
+                pre_release: vec![],
+                build: vec![],
+            },
+        })
+        .unwrap();
+        let expected: String = r#"{"version":"1.2.34"}"#.into();
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn serialize_a_version_with_rev_1_to_string() {
+        let output = serde_json::to_string(&Versioned {
+            version: Version {
+                major: 1,
+                minor: 2,
+                patch: 34,
+                revision: 1,
+                pre_release: vec![],
+                build: vec![],
+            },
+        })
+        .unwrap();
+        let expected: String = r#"{"version":"1.2.34.1"}"#.into();
 
         assert_eq!(output, expected);
     }

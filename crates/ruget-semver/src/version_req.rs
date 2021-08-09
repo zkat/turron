@@ -459,7 +459,7 @@ fn wildcard(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     context(
         "wildcard",
         map_opt(x_or_asterisk, |_| {
-            Range::at_least(Predicate::Including((0, 0, 0).into()))
+            Range::at_least(Predicate::Including((0, 0, 0, 0).into()))
         }),
     )(input)
 }
@@ -503,38 +503,165 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
         map_opt(
             tuple((operation, preceded(space0, partial_version))),
             |parsed| match parsed {
-                (GreaterThanEquals, (major, minor, patch, _, _)) => Range::at_least(
-                    Predicate::Including((major, minor.unwrap_or(0), patch.unwrap_or(0)).into()),
-                ),
-                (GreaterThan, (major, Some(minor), Some(patch), pre_release, build)) => {
+                (GreaterThanEquals, (major, minor, patch, revision, pre_release, build)) => {
+                    Range::at_least(Predicate::Including(Version {
+                        major,
+                        minor: minor.unwrap_or(0),
+                        patch: patch.unwrap_or(0),
+                        revision: revision.unwrap_or(0),
+                        pre_release,
+                        build,
+                    }))
+                }
+                (
+                    GreaterThan,
+                    (major, Some(minor), Some(patch), Some(revision), pre_release, build),
+                ) => Range::at_least(Predicate::Excluding(Version {
+                    major,
+                    minor,
+                    patch,
+                    revision,
+                    pre_release,
+                    build,
+                })),
+                (GreaterThan, (major, Some(minor), Some(patch), None, pre_release, build)) => {
                     Range::at_least(Predicate::Excluding(Version {
                         major,
                         minor,
                         patch,
+                        revision: 0,
                         pre_release,
                         build,
-                    })) // TODO: Pull through for the rest
+                    }))
                 }
-                (GreaterThan, (major, Some(minor), None, _, _)) => {
-                    Range::at_least(Predicate::Including((major, minor + 1, 0).into()))
+                (GreaterThan, (major, Some(minor), None, None, pre_release, build)) => {
+                    Range::at_least(Predicate::Including(Version {
+                        major,
+                        minor: minor + 1,
+                        patch: 0,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    }))
                 }
-                (GreaterThan, (major, None, None, _, _)) => {
-                    Range::at_least(Predicate::Including((major + 1, 0, 0).into()))
+                (GreaterThan, (major, None, None, None, pre_release, build)) => {
+                    Range::at_least(Predicate::Including(Version {
+                        major: major + 1,
+                        minor: 0,
+                        patch: 0,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    }))
                 }
-                (LessThan, (major, Some(minor), None, _, _)) => {
-                    Range::at_most(Predicate::Excluding((major, minor, 0, 0).into()))
+                (LessThan, (major, Some(minor), Some(patch), None, pre_release, build)) => {
+                    Range::at_most(Predicate::Excluding(Version {
+                        major,
+                        minor,
+                        patch,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    }))
                 }
-                (LessThan, (major, minor, patch, _, _)) => Range::at_most(Predicate::Excluding(
-                    (major, minor.unwrap_or(0), patch.unwrap_or(0)).into(),
-                )),
-                (LessThanEquals, (major, minor, None, _, _)) => Range::at_most(
-                    Predicate::Including((major, minor.unwrap_or(0), 0, 0).into()),
-                ),
-                (LessThanEquals, (major, Some(minor), Some(patch), _, _)) => {
-                    Range::at_most(Predicate::Including((major, minor, patch).into()))
+                (LessThan, (major, Some(minor), None, None, _, build)) => {
+                    Range::at_most(Predicate::Excluding(Version {
+                        major,
+                        minor,
+                        patch: 0,
+                        revision: 0,
+                        pre_release: vec![Identifier::Numeric(0)],
+                        build,
+                    }))
                 }
-                (Exact, (major, Some(minor), Some(patch), _, _)) => {
-                    Range::exact((major, minor, patch).into())
+                (LessThan, (major, minor, patch, revision, pre_release, build)) => {
+                    Range::at_most(Predicate::Excluding(Version {
+                        major,
+                        minor: minor.unwrap_or(0),
+                        patch: patch.unwrap_or(0),
+                        revision: revision.unwrap_or(0),
+                        pre_release,
+                        build,
+                    }))
+                }
+                (LessThanEquals, (major, None, None, None, _, build)) => {
+                    Range::at_most(Predicate::Including(Version {
+                        major,
+                        minor: 0,
+                        patch: 0,
+                        revision: 0,
+                        pre_release: vec![Identifier::Numeric(0)],
+                        build,
+                    }))
+                }
+                (LessThanEquals, (major, Some(minor), None, None, _, build)) => {
+                    Range::at_most(Predicate::Including(Version {
+                        major,
+                        minor,
+                        patch: 0,
+                        revision: 0,
+                        pre_release: vec![Identifier::Numeric(0)],
+                        build,
+                    }))
+                }
+                (LessThanEquals, (major, Some(minor), Some(patch), None, pre_release, build)) => {
+                    Range::at_most(Predicate::Including(Version {
+                        major,
+                        minor,
+                        patch,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    }))
+                }
+                (
+                    LessThanEquals,
+                    (major, Some(minor), Some(patch), Some(revision), pre_release, build),
+                ) => Range::at_most(Predicate::Including(Version {
+                    major,
+                    minor,
+                    patch,
+                    revision,
+                    pre_release,
+                    build,
+                })),
+                (Exact, (major, None, None, None, pre_release, build)) => Range::exact(Version {
+                    major,
+                    minor: 0,
+                    patch: 0,
+                    revision: 0,
+                    pre_release,
+                    build,
+                }),
+                (Exact, (major, Some(minor), None, None, pre_release, build)) => {
+                    Range::exact(Version {
+                        major,
+                        minor,
+                        patch: 0,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    })
+                }
+                (Exact, (major, Some(minor), Some(patch), None, pre_release, build)) => {
+                    Range::exact(Version {
+                        major,
+                        minor,
+                        patch,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    })
+                }
+                (Exact, (major, Some(minor), Some(patch), Some(revision), pre_release, build)) => {
+                    Range::exact(Version {
+                        major,
+                        minor,
+                        patch,
+                        revision,
+                        pre_release,
+                        build,
+                    })
                 }
                 _ => unreachable!("Odd parsed version: {:?}", parsed),
             },
@@ -569,15 +696,15 @@ fn x_and_asterisk_version(input: &str) -> IResult<&str, Range, SemverParseError<
 
 fn lower_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
     Bound::Lower(Predicate::Including(
-        (major, maybe_minor.unwrap_or(0), 0).into(),
+        (major, maybe_minor.unwrap_or(0), 0, 0).into(),
     ))
 }
 
 fn upper_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
     if let Some(minor) = maybe_minor {
-        Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0).into()))
+        Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into()))
     } else {
-        Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0).into()))
+        Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into()))
     }
 }
 
@@ -587,34 +714,46 @@ fn caret(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
         map_opt(
             preceded(tuple((tag("^"), space0)), partial_version),
             |parsed| match parsed {
-                (0, None, None, _, _) => Range::at_most(Predicate::Excluding((1, 0, 0, 0).into())),
-                (0, Some(minor), None, _, _) => Range::new(
-                    Bound::Lower(Predicate::Including((0, minor, 0).into())),
-                    Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0).into())),
+                (0, None, None, None, _, _) => {
+                    Range::at_most(Predicate::Excluding((1, 0, 0, 0, 0).into()))
+                }
+                (0, Some(minor), None, None, _, _) => Range::new(
+                    Bound::Lower(Predicate::Including((0, minor, 0, 0).into())),
+                    Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0, 0).into())),
                 ),
-                // TODO: can be compressed?
-                (major, None, None, _, _) => Range::new(
-                    Bound::Lower(Predicate::Including((major, 0, 0).into())),
-                    Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0).into())),
+                // (0, Some(minor), Some(patch), None, _, _) => Range::new(
+                //     Bound::Lower(Predicate::Including((0, minor, patch, 0).into())),
+                //     Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0, 0).into())),
+                // ),
+                (major, None, None, None, _, _) => Range::new(
+                    Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
+                    Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
                 ),
-                (major, Some(minor), None, _, _) => Range::new(
-                    Bound::Lower(Predicate::Including((major, minor, 0).into())),
-                    Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0).into())),
+                (major, Some(minor), None, None, _, _) => Range::new(
+                    Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
+                    Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
                 ),
-                (major, Some(minor), Some(patch), pre_release, _) => Range::new(
-                    Bound::Lower(Predicate::Including(Version {
-                        major,
-                        minor,
-                        patch,
-                        pre_release,
-                        build: vec![],
-                    })),
-                    Bound::Upper(Predicate::Excluding(match (major, minor, patch) {
-                        (0, 0, n) => Version::from((0, 0, n + 1, 0)),
-                        (0, n, _) => Version::from((0, n + 1, 0, 0)),
-                        (n, _, _) => Version::from((n + 1, 0, 0, 0)),
-                    })),
-                ),
+                (major, Some(minor), Some(patch), revision, pre_release, _) => {
+                    let revision = revision.unwrap_or(0);
+                    Range::new(
+                        Bound::Lower(Predicate::Including(Version {
+                            major,
+                            minor,
+                            patch,
+                            revision,
+                            pre_release,
+                            build: vec![],
+                        })),
+                        Bound::Upper(Predicate::Excluding(
+                            match (major, minor, patch, revision) {
+                                (0, 0, 0, n) => Version::from((0, 0, 0, n + 1, 0)),
+                                (0, 0, n, _) => Version::from((0, 0, n + 1, 0, 0)),
+                                (0, n, _, _) => Version::from((0, n + 1, 0, 0, 0)),
+                                (n, _, _, _) => Version::from((n + 1, 0, 0, 0, 0)),
+                            },
+                        )),
+                    )
+                }
                 _ => unreachable!(),
             },
         ),
@@ -623,8 +762,8 @@ fn caret(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
 
 fn tilde_gt(input: &str) -> IResult<&str, Option<&str>, SemverParseError<&str>> {
     map(
-        tuple((tag("~"), space0, opt(tag(">")), space0)),
-        |(_, _, gt, _)| gt,
+        tuple((tag("~"), space0, opt(tuple((tag(">"), space0))))),
+        |(_, _, gt)| gt.map(|(gt, _)| gt),
     )(input)
 }
 
@@ -632,25 +771,37 @@ fn tilde(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     context(
         "tilde",
         map_opt(tuple((tilde_gt, partial_version)), |parsed| match parsed {
-            (Some(_gt), (major, None, None, _, _)) => Range::new(
-                Bound::Lower(Predicate::Including((major, 0, 0).into())),
-                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0).into())),
+            (Some(_), (major, None, None, None, _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
+                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
             ),
-            (Some(_gt), (major, Some(minor), Some(patch), _, _)) => Range::new(
-                Bound::Lower(Predicate::Including((major, minor, patch).into())),
-                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0).into())),
+            (Some(_), (major, Some(minor), None, None, _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
+                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
             ),
-            (None, (major, Some(minor), Some(patch), _, _)) => Range::new(
-                Bound::Lower(Predicate::Including((major, minor, patch).into())),
-                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0).into())),
+            (Some(_), (major, Some(minor), Some(patch), None, _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
+                Bound::Upper(Predicate::Excluding((major, minor, 0, 0, 0).into())),
             ),
-            (None, (major, Some(minor), None, _, _)) => Range::new(
-                Bound::Lower(Predicate::Including((major, minor, 0).into())),
-                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0).into())),
+            (Some(_), (major, Some(minor), Some(patch), Some(revision), _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
+                Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
             ),
-            (None, (major, None, None, _, _)) => Range::new(
-                Bound::Lower(Predicate::Including((major, 0, 0).into())),
-                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0).into())),
+            (None, (major, Some(minor), Some(patch), Some(revision), _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
+                Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
+            ),
+            (None, (major, Some(minor), Some(patch), None, _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
+                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into())),
+            ),
+            (None, (major, Some(minor), None, None, _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
+                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into())),
+            ),
+            (None, (major, None, None, None, _, _)) => Range::new(
+                Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
+                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
             ),
             _ => unreachable!("Should not have gotten here"),
         }),
@@ -678,29 +829,53 @@ fn hyphenated_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>>
         "hyphenated with major and minor",
         map_opt(
             hyphenated(partial_version, partial_version),
-            |((left, maybe_l_minor, maybe_l_patch, pre_release, _), upper)| {
+            |((left, maybe_l_minor, maybe_l_patch, maybe_l_revision, pre_release, _), upper)| {
                 Range::new(
                     Bound::Lower(Predicate::Including(Version {
                         major: left,
                         minor: maybe_l_minor.unwrap_or(0),
                         patch: maybe_l_patch.unwrap_or(0),
+                        revision: maybe_l_revision.unwrap_or(0),
                         pre_release,
                         build: vec![],
                     })),
                     Bound::Upper(match upper {
-                        (major, None, None, _, _) => {
-                            Predicate::Excluding((major + 1, 0, 0, 0).into())
+                        (major, None, None, None, _, build) => Predicate::Excluding(Version {
+                            major: major + 1,
+                            minor: 0,
+                            patch: 0,
+                            revision: 0,
+                            pre_release: vec![Identifier::Numeric(0)],
+                            build,
+                        }),
+                        (major, Some(minor), None, None, _, build) => {
+                            Predicate::Excluding(Version {
+                                major,
+                                minor: minor + 1,
+                                patch: 0,
+                                revision: 0,
+                                pre_release: vec![Identifier::Numeric(0)],
+                                build,
+                            })
                         }
-                        (major, Some(minor), None, _, _) => {
-                            Predicate::Excluding((major, minor + 1, 0, 0).into())
-                        }
-                        (major, Some(minor), Some(patch), pre_release, _) => {
+                        (major, Some(minor), Some(patch), None, pre_release, build) => {
                             Predicate::Including(Version {
                                 major,
                                 minor,
                                 patch,
+                                revision: 0,
                                 pre_release,
-                                build: vec![],
+                                build,
+                            })
+                        }
+                        (major, Some(minor), Some(patch), Some(revision), pre_release, build) => {
+                            Predicate::Including(Version {
+                                major,
+                                minor,
+                                patch,
+                                revision,
+                                pre_release,
+                                build,
                             })
                         }
                         _ => unreachable!("No way to a have a patch without a minor"),
@@ -715,8 +890,13 @@ fn no_operation_followed_by_version(input: &str) -> IResult<&str, Range, SemverP
     context(
         "major and minor",
         map_opt(partial_version, |parsed| match parsed {
-            (major, Some(minor), Some(patch), _, _) => Range::exact((major, minor, patch).into()),
-            (major, maybe_minor, _, _, _) => Range::new(
+            (major, Some(minor), Some(patch), Some(revision), _, _) => {
+                Range::exact((major, minor, patch, revision).into())
+            }
+            (major, Some(minor), Some(patch), None, _, _) => {
+                Range::exact((major, minor, patch, 0).into())
+            }
+            (major, maybe_minor, _, _, _, _) => Range::new(
                 lower_bound(major, maybe_minor),
                 upper_bound(major, maybe_minor),
             ),
