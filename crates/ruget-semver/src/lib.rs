@@ -507,16 +507,25 @@ fn version_core(input: &str) -> IResult<&str, (u64, u64, u64, u64), SemverParseE
         "version core",
         alt((
             map(
-                tuple((number, tag("."), cut(number), tag("."), cut(number), tag("."), cut(number))),
+                tuple((
+                    number,
+                    tag("."),
+                    cut(number),
+                    tag("."),
+                    cut(number),
+                    tag("."),
+                    cut(number),
+                )),
                 |(major, _, minor, _, patch, _, revision)| (major, minor, patch, revision),
             ),
             map(
                 tuple((number, tag("."), cut(number), tag("."), cut(number))),
                 |(major, _, minor, _, patch)| (major, minor, patch, 0),
             ),
-            map(tuple((number, tag("."), cut(number))), |(major, _, minor)| {
-                (major, minor, 0, 0)
-            }),
+            map(
+                tuple((number, tag("."), cut(number))),
+                |(major, _, minor)| (major, minor, 0, 0),
+            ),
             map(number, |major| (major, 0, 0, 0)),
         )),
     )(input)
