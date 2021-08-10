@@ -7,12 +7,54 @@ use ruget_common::{
     serde_json,
     surf::{self, StatusCode, Url},
 };
-use ruget_semver::Version;
+use ruget_semver::{Version, VersionReq};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
 
 impl NuGetClient {
+    pub async fn versions(
+        &self,
+        package_id: impl AsRef<str>,
+    ) -> Result<Vec<Version>, NuGetApiError> {
+        use NuGetApiError::*;
+        let url = self
+            .endpoints
+            .package_content
+            .clone()
+            .ok_or_else(|| UnsupportedEndpoint("PackageBaseAddress/3.0.0".into()))?
+            .join(&format!(
+                "{}/index.json",
+                &package_id.as_ref().to_lowercase()
+            ))?;
+
+        let req = surf::get(url.clone());
+
+        let mut res = self
+            .client
+            .send(req)
+            .await
+            .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+
+        match res.status() {
+            StatusCode::Ok => {
+                let body = res
+                    .body_string()
+                    .await
+                    .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+                Ok(serde_json::from_str::<PackageVersions>(&body)
+                    .map_err(|e| NuGetApiError::BadJson {
+                        source: e,
+                        url: url.into(),
+                        json: Arc::new(body),
+                    })?
+                    .versions)
+            }
+            StatusCode::NotFound => Err(PackageNotFound),
+            code => Err(BadResponse(code)),
+        }
+    }
+
     pub async fn registration_page(
         &self,
         page: impl AsRef<str>,
@@ -175,12 +217,24 @@ pub struct DependencyGroup {
     pub dependencies: Option<Vec<Dependency>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Dependency {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub range: Option<String>, // TODO: what type is this, actually?...
+    pub range: Option<VersionReq>, // TODO: what type is this, actually?...
+}
+
+impl PartialOrd for Dependency {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+
+impl Ord for Dependency {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -217,4 +271,9 @@ pub enum DeprecationReason {
     Other,
     #[serde(other)]
     Unknown,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PackageVersions {
+    pub versions: Vec<Version>,
 }

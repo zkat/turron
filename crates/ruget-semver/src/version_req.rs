@@ -115,6 +115,7 @@ impl Range {
         let upper = std::cmp::min(&self.upper, &other.upper);
 
         Range::new(lower.clone(), upper.clone())
+            .map(|r| r.floating(self.floating || other.floating))
     }
 
     fn difference(&self, other: &Self) -> Option<Vec<Self>> {
@@ -128,18 +129,23 @@ impl Range {
             if self.lower < overlap.lower && overlap.upper < self.upper {
                 return Some(vec![
                     Range::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
+                        .map(|r| r.floating(self.floating || other.floating))
                         .unwrap(),
                     Range::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
+                        .map(|r| r.floating(self.floating || other.floating))
                         .unwrap(),
                 ]);
             }
 
             if self.lower < overlap.lower {
                 return Range::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
+                    .map(|r| r.floating(self.floating || other.floating))
                     .map(|f| vec![f]);
             }
 
-            Range::new(Lower(overlap.upper.predicate().flip()), self.upper.clone()).map(|f| vec![f])
+            Range::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
+                .map(|r| r.floating(self.floating || other.floating))
+                .map(|f| vec![f])
         } else {
             Some(vec![self.clone()])
         }
@@ -330,6 +336,10 @@ impl VersionReq {
         Self {
             predicates: vec![Range::new(Bound::lower(), Bound::upper()).unwrap()],
         }
+    }
+
+    pub fn is_floating(&self) -> bool {
+        self.predicates.iter().any(|pred| pred.floating)
     }
 
     pub fn satisfies(&self, version: &Version) -> bool {

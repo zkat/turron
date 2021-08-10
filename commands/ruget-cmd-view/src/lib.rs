@@ -13,7 +13,7 @@ use ruget_common::{
     miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
     thiserror::{self, Error},
 };
-use ruget_semver::VersionReq;
+use ruget_semver::{Version, VersionReq};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
@@ -42,7 +42,9 @@ pub struct ViewCmd {
 #[async_trait]
 impl RuGetCommand for ViewCmd {
     async fn execute(self) -> Result<()> {
-        let (index, leaf) = self.find_version().await?;
+        let client = NuGetClient::from_source(self.source.clone()).await?;
+        let version = self.pick_version(&client).await?;
+        let (index, leaf) = self.find_version(&client, &version).await?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(
@@ -58,12 +60,32 @@ impl RuGetCommand for ViewCmd {
 }
 
 impl ViewCmd {
-    async fn find_version(&self) -> Result<(RegistrationIndex, RegistrationLeaf)> {
-        let client = NuGetClient::from_source(self.source.clone()).await?;
+    async fn pick_version(&self, client: &NuGetClient) -> Result<Version> {
+        let versions = client.versions(&self.package_id).await?;
+        let req = &self.package_req;
+        let pick = if req.is_floating() {
+            versions.into_iter().rev().find(|v| req.satisfies(v))
+        } else {
+            versions.into_iter().find(|v| req.satisfies(v))
+        };
+        if let Some(pick) = pick {
+            Ok(pick)
+        } else {
+            Err(ViewError::VersionNotFound(
+                self.package_req.clone(),
+            ).into())
+        }
+    }
+
+    async fn find_version(
+        &self,
+        client: &NuGetClient,
+        version: &Version,
+    ) -> Result<(RegistrationIndex, RegistrationLeaf)> {
         let index = client.registration(&self.package_id).await?;
-        for page in index.items.iter().rev() {
+        for page in &index.items {
             let page_range: VersionReq = format!("[{}, {}]", page.lower, page.upper).parse()?;
-            if let Some(intersection) = page_range.intersect(&self.package_req) {
+            if page_range.satisfies(version) {
                 let page = if page.items.is_some() {
                     page.clone()
                 } else {
@@ -73,9 +95,8 @@ impl ViewCmd {
                     .items
                     .expect("RegistrationPage endpoints must have items!")
                     .into_iter()
-                    .rev()
                 {
-                    if intersection.satisfies(&leaf.catalog_entry.version) {
+                    if version == &leaf.catalog_entry.version {
                         return Ok((index, leaf));
                     }
                 }
