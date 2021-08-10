@@ -26,6 +26,11 @@ pub struct ViewCmd {
     )]
     package_req: VersionReq,
     #[clap(
+        about = "Print out a list of available versions for this package.",
+        long
+    )]
+    versions: bool,
+    #[clap(
         about = "Source to view packages from",
         default_value = "https://api.nuget.org/v3/index.json",
         long
@@ -43,8 +48,40 @@ pub struct ViewCmd {
 impl RuGetCommand for ViewCmd {
     async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone()).await?;
-        let version = self.pick_version(&client).await?;
-        let (index, leaf) = self.find_version(&client, &version).await?;
+        let versions = client.versions(&self.package_id).await?;
+        if self.versions {
+            self.print_versions(versions).await
+        } else {
+            self.print_version_details(&client, versions).await
+        }
+    }
+}
+
+impl ViewCmd {
+    async fn print_versions(&self, versions: Vec<Version>) -> Result<()> {
+        if self.json && !self.quiet {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&versions)
+                    .into_diagnostic(&"ruget::view::json_serialization")?
+            );
+        } else if !self.quiet {
+            println!("Versions available for {}:", self.package_id);
+            println!();
+            for version in &versions {
+                println!("{}", version);
+            }
+        }
+        Ok(())
+    }
+
+    async fn print_version_details(
+        &self,
+        client: &NuGetClient,
+        versions: Vec<Version>,
+    ) -> Result<()> {
+        let version = self.pick_version(versions).await?;
+        let (index, leaf) = self.find_version(client, &version).await?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(
@@ -53,15 +90,12 @@ impl RuGetCommand for ViewCmd {
                     .into_diagnostic(&"ruget::view::json_serialization")?
             );
         } else if !self.quiet {
-            self.print_info(&index, &leaf);
+            self.print_package_details(&index, &leaf);
         }
         Ok(())
     }
-}
 
-impl ViewCmd {
-    async fn pick_version(&self, client: &NuGetClient) -> Result<Version> {
-        let versions = client.versions(&self.package_id).await?;
+    async fn pick_version(&self, versions: Vec<Version>) -> Result<Version> {
         let req = &self.package_req;
         let pick = if req.is_floating() {
             versions.into_iter().rev().find(|v| req.satisfies(v))
@@ -71,9 +105,7 @@ impl ViewCmd {
         if let Some(pick) = pick {
             Ok(pick)
         } else {
-            Err(ViewError::VersionNotFound(
-                self.package_req.clone(),
-            ).into())
+            Err(ViewError::VersionNotFound(self.package_req.clone()).into())
         }
     }
 
@@ -107,7 +139,7 @@ impl ViewCmd {
         )))
     }
 
-    fn print_info(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {
+    fn print_package_details(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {
         self.print_header(index, leaf);
         println!();
         self.print_tags(leaf);
