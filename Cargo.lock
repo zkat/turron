@@ -1758,6 +1758,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruget-package-spec"
+version = "0.1.0"
+dependencies = [
+ "bytecount",
+ "nom 6.2.1",
+ "percent-encoding",
+ "ruget-common",
+ "ruget-semver",
+ "url",
+]
+
+[[package]]
 name = "ruget-semver"
 version = "0.1.0"
 dependencies = [
