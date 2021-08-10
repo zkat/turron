@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use nom::combinator::all_consuming;
 use nom::Err;
-use ruget_semver::{Version, VersionReq as Range};
+use ruget_semver::VersionReq;
 
 pub use crate::error::{PackageSpecError, SpecErrorKind};
 pub use crate::gitinfo::{GitHost, GitInfo};
@@ -15,20 +15,13 @@ mod gitinfo;
 mod parsers;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum VersionSpec {
-    Tag(String),
-    Version(Version),
-    Range(Range),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PackageSpec {
     Dir {
         path: PathBuf,
     },
     NuGet {
         name: String,
-        requested: Option<VersionSpec>,
+        requested: Option<VersionReq>,
     },
     Git(GitInfo),
 }
@@ -67,17 +60,6 @@ impl fmt::Display for PackageSpec {
                 }
                 Ok(())
             }
-        }
-    }
-}
-
-impl fmt::Display for VersionSpec {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use VersionSpec::*;
-        match self {
-            Tag(tag) => write!(f, "{}", tag),
-            Version(v) => write!(f, "{}", v),
-            Range(range) => write!(f, "{}", range),
         }
     }
 }

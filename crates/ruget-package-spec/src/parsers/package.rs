@@ -9,7 +9,7 @@ use crate::error::SpecParseError;
 use crate::parsers::{git, nuget, path};
 use crate::PackageSpec;
 
-/// package-spec := alias | ( [ "npm:" ] npm-pkg ) | ( [ "file:" ] path ) | git-pkg
+/// package-spec := ( [ "nuget:" ] nuget-pkg ) | ( [ "file:" ] path ) | git-pkg
 pub(crate) fn package_spec(
     input: &str,
 ) -> IResult<&str, PackageSpec, SpecParseError<&str>> {

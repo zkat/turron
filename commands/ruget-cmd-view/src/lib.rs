@@ -13,23 +13,18 @@ use ruget_common::{
     miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
     thiserror::{self, Error},
 };
+use ruget_package_spec::PackageSpec;
 use ruget_semver::{Version, VersionReq};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct ViewCmd {
-    #[clap(about = "Name of package to view")]
-    package_id: String,
+    #[clap(about = "Package spec to look up")]
+    package: PackageSpec,
     #[clap(
-        about = "Package version to view. Defaults to whatever the highest version is.",
-        default_value = "*"
+        about = "Specific attribute to print out for this package. Supported attributes: `version`."
     )]
-    package_req: VersionReq,
-    #[clap(
-        about = "Print out a list of available versions for this package.",
-        long
-    )]
-    versions: bool,
+    field: Option<String>,
     #[clap(
         about = "Source to view packages from",
         default_value = "https://api.nuget.org/v3/index.json",
@@ -48,11 +43,17 @@ pub struct ViewCmd {
 impl RuGetCommand for ViewCmd {
     async fn execute(self) -> Result<()> {
         let client = NuGetClient::from_source(self.source.clone()).await?;
-        let versions = client.versions(&self.package_id).await?;
-        if self.versions {
-            self.print_versions(versions).await
+        let (package_id, requested) = if let PackageSpec::NuGet { name, requested } = &self.package
+        {
+            (name, requested.clone().unwrap_or_else(VersionReq::any))
         } else {
-            self.print_version_details(&client, versions).await
+            return Err(ViewError::InvalidPackageSpec.into());
+        };
+        let versions = client.versions(&package_id).await?;
+        match &self.field.as_deref() {
+            Some("versions") => self.print_versions(versions).await,
+            None => self.print_version_details(&client, package_id, &requested, versions).await,
+            _ => Err(ViewError::InvalidAttribute.into()),
         }
     }
 }
@@ -66,9 +67,9 @@ impl ViewCmd {
                     .into_diagnostic(&"ruget::view::json_serialization")?
             );
         } else if !self.quiet {
-            println!("Versions available for {}:", self.package_id);
+            println!("Versions available for {}:", self.package);
             println!();
-            for version in &versions {
+            for version in versions.iter().rev() {
                 println!("{}", version);
             }
         }
@@ -78,10 +79,14 @@ impl ViewCmd {
     async fn print_version_details(
         &self,
         client: &NuGetClient,
+        package_id: &str,
+        requested: &VersionReq,
         versions: Vec<Version>,
     ) -> Result<()> {
-        let version = self.pick_version(versions).await?;
-        let (index, leaf) = self.find_version(client, &version).await?;
+        let version = self.pick_version(package_id, requested, versions).await?;
+        let (index, leaf) = self
+            .find_version(client, package_id, requested, &version)
+            .await?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(
@@ -95,8 +100,12 @@ impl ViewCmd {
         Ok(())
     }
 
-    async fn pick_version(&self, versions: Vec<Version>) -> Result<Version> {
-        let req = &self.package_req;
+    async fn pick_version(
+        &self,
+        id: &str,
+        req: &VersionReq,
+        versions: Vec<Version>,
+    ) -> Result<Version> {
         let pick = if req.is_floating() {
             versions.into_iter().rev().find(|v| req.satisfies(v))
         } else {
@@ -105,16 +114,18 @@ impl ViewCmd {
         if let Some(pick) = pick {
             Ok(pick)
         } else {
-            Err(ViewError::VersionNotFound(self.package_req.clone()).into())
+            Err(ViewError::VersionNotFound(id.into(), req.clone()).into())
         }
     }
 
     async fn find_version(
         &self,
         client: &NuGetClient,
+        package_id: &str,
+        req: &VersionReq,
         version: &Version,
     ) -> Result<(RegistrationIndex, RegistrationLeaf)> {
-        let index = client.registration(&self.package_id).await?;
+        let index = client.registration(package_id).await?;
         for page in &index.items {
             let page_range: VersionReq = format!("[{}, {}]", page.lower, page.upper).parse()?;
             if page_range.satisfies(version) {
@@ -135,7 +146,8 @@ impl ViewCmd {
             }
         }
         Err(Box::new(ViewError::VersionNotFound(
-            self.package_req.clone(),
+            package_id.into(),
+            req.clone(),
         )))
     }
 
@@ -271,14 +283,30 @@ impl ViewCmd {
 
 #[derive(Clone, Debug, Error)]
 pub enum ViewError {
-    #[error("Failed to find a version that satisfied {0}")]
-    VersionNotFound(VersionReq),
+    #[error("Invalid package attribute requested")]
+    InvalidAttribute,
+    #[error("Only NuGet package specifiers are acceptable. Directories and git repositories are not supported... yet ��")]
+    InvalidPackageSpec,
+    #[error("Failed to find a version for {0} that satisfied {1}")]
+    VersionNotFound(String, VersionReq),
 }
 
 impl Diagnostic for ViewError {
     fn code(&self) -> &(dyn std::fmt::Display) {
         match self {
-            ViewError::VersionNotFound(_) => &"ruget::view::version_not_found",
+            ViewError::VersionNotFound(_, _) => &"ruget::view::version_not_found",
+            ViewError::InvalidPackageSpec => &"ruget::view::invalid_package_spec",
+            ViewError::InvalidAttribute => &"ruget::view::invalid_attribute",
+        }
+    }
+
+    fn help(&self) -> Option<&(dyn std::fmt::Display)> {
+        match self {
+            ViewError::InvalidPackageSpec => None,
+            ViewError::VersionNotFound(_, _) => Some(&"Try running `ruget view <id> versions`"),
+            ViewError::InvalidAttribute => Some(&"Use `ruget view --help` to see what attributes are supported"),
+            // TODO: I guess this is good motivation to change miette...
+            // ViewError::VersionNotFound(id, _) => Some(&format!("Try running `ruget view {} versions`", id))
         }
     }
 }

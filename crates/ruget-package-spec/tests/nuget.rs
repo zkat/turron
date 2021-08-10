@@ -1,5 +1,5 @@
-use ruget_package_spec::{PackageSpec, PackageSpecError, VersionSpec};
-use ruget_semver::{Version as SemVerVersion, VersionReq as SemVerVersionReq};
+use ruget_package_spec::{PackageSpec, PackageSpecError};
+use ruget_semver::VersionReq;
 
 type Result<T> = std::result::Result<T, PackageSpecError>;
 
@@ -7,8 +7,8 @@ fn parse(input: &str) -> Result<PackageSpec> {
     input.parse()
 }
 
-fn version_req(input: &str) -> Option<VersionSpec> {
-    Some(VersionSpec::Range(SemVerVersionReq::parse(input).unwrap()))
+fn version_req(input: &str) -> Option<VersionReq> {
+    Some(VersionReq::parse(input).unwrap())
 }
 
 #[test]
@@ -21,26 +21,6 @@ fn nuget_pkg_basic() -> Result<()> {
             requested: None
         }
     );
-    Ok(())
-}
-
-#[test]
-fn nuget_pkg_tag() -> Result<()> {
-    let res = parse("hello-world@latest")?;
-    assert_eq!(
-        res,
-        PackageSpec::NuGet {
-            name: "hello-world".into(),
-            requested: Some(VersionSpec::Tag("latest".into()))
-        }
-    );
-    Ok(())
-}
-
-#[test]
-fn alias_not_recursive() -> Result<()> {
-    let res = parse("foo@bar@nuget:hello-world");
-    assert!(res.is_err());
     Ok(())
 }
 
@@ -64,20 +44,7 @@ fn nuget_pkg_with_req() -> Result<()> {
         res,
         PackageSpec::NuGet {
             name: "hello-world".into(),
-            requested: Some(VersionSpec::Version(SemVerVersion::parse("1.2.3").unwrap()))
-        }
-    );
-    Ok(())
-}
-
-#[test]
-fn nuget_pkg_with_tag() -> Result<()> {
-    let res = parse("hello-world@howdy")?;
-    assert_eq!(
-        res,
-        PackageSpec::NuGet {
-            name: "hello-world".into(),
-            requested: Some(VersionSpec::Tag("howdy".into())),
+            requested: Some(VersionReq::parse("1.2.3").unwrap())
         }
     );
     Ok(())

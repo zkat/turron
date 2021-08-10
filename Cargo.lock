@@ -1699,6 +1699,7 @@ dependencies = [
  "nuget-api",
  "ruget-command",
  "ruget-common",
+ "ruget-package-spec",
  "ruget-semver",
  "term_grid",
  "term_size",
