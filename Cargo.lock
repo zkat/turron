@@ -1696,6 +1696,8 @@ dependencies = [
 name = "ruget-cmd-view"
 version = "0.1.0"
 dependencies = [
+ "nu-ansi-term",
+ "nu-table",
  "nuget-api",
  "ruget-command",
  "ruget-common",

@@ -11,5 +11,7 @@ ruget-common = { path = "../../crates/ruget-common" }
 ruget-package-spec = { path = "../../crates/ruget-package-spec" }
 ruget-semver = { path = "../../crates/ruget-semver" }
 
+nu-table = "0.34.0"
+nu-ansi-term = "0.34.0"
 term_grid = "0.2.0"
 term_size = "0.3.2"
