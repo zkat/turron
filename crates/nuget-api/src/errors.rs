@@ -45,6 +45,10 @@ pub enum NuGetApiError {
     #[error("Package does not exist.")]
     PackageNotFound,
 
+    /// The given RegistrationPage URL did not return results.
+    #[error("Registration page URL is invalid.")]
+    RegistrationPageNotFound,
+
     /// Got some bad JSON we couldn't parse.
     #[error("Received some bad JSON from the source. Unable to parse.")]
     BadJson {
@@ -70,6 +74,7 @@ impl Diagnostic for NuGetApiError {
             InvalidPackage => &"ruget::api::invalid_package",
             PackageAlreadyExists => &"ruget::api::package_exists",
             PackageNotFound => &"ruget::api::package_not_found",
+            RegistrationPageNotFound => &"ruget::api::registration_page_not_found",
             BadResponse(_) => &"ruget::api::unexpected_response",
             BadApiKey(_) => &"ruget::api::bad_api_key",
             BadJson { .. } => &"ruget::api::bad_json",
@@ -88,6 +93,7 @@ impl Diagnostic for NuGetApiError {
             InvalidPackage => Some(&"Honestly, the NuGet API doesn't give us any more details besides this. :("),
             PackageAlreadyExists => None,
             PackageNotFound => Some(&"This can happen if your provided API key is invalid, or if the version you specified does not exist. Double-check both!"),
+            RegistrationPageNotFound => Some(&"Are you sure you used the right URL? This might also happen if your API key is invalid."),
             BadResponse(_) => Some(&"This is likely a bug with the NuGet API (or its documentation). Please report it."),
             BadJson { .. } => Some(&"This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
         }
@@ -132,8 +138,8 @@ impl NuGetApiError {
                     source_name: url.clone(),
                     source: json.clone(),
                     context: SourceSpan {
-                        start: (offset - cmp::min(35, offset)).into(),
-                        end: (offset + cmp::min(35, len - offset) - 1).into(),
+                        start: (offset - cmp::min(40, offset)).into(),
+                        end: (offset + cmp::min(40, len - offset) - 1).into(),
                     },
                     highlights: Some(vec![(
                         "here".into(),

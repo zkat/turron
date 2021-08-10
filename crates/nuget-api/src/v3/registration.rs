@@ -5,21 +5,55 @@ use ruget_common::{
     chrono::{DateTime, Utc},
     serde::{Deserialize, Serialize},
     serde_json,
-    surf::{self, StatusCode},
+    surf::{self, StatusCode, Url},
 };
+use ruget_semver::Version;
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
 
 impl NuGetClient {
-    pub async fn metadata(
-        self,
+    pub async fn registration_page(
+        &self,
+        page: impl AsRef<str>,
+    ) -> Result<RegistrationPage, NuGetApiError> {
+        use NuGetApiError::*;
+        let url = Url::parse(page.as_ref())?;
+        let req = surf::get(url.clone());
+
+        let mut res = self
+            .client
+            .send(req)
+            .await
+            .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+
+        match res.status() {
+            StatusCode::Ok => {
+                let body = res
+                    .body_string()
+                    .await
+                    .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+                Ok(
+                    serde_json::from_str(&body).map_err(|e| NuGetApiError::BadJson {
+                        source: e,
+                        url: url.into(),
+                        json: Arc::new(body),
+                    })?,
+                )
+            }
+            StatusCode::NotFound => Err(RegistrationPageNotFound),
+            code => Err(BadResponse(code)),
+        }
+    }
+
+    pub async fn registration(
+        &self,
         package_id: impl AsRef<str>,
     ) -> Result<RegistrationIndex, NuGetApiError> {
         use NuGetApiError::*;
         let url = self
             .endpoints
-            .metadata
+            .registration
             .clone()
             .ok_or_else(|| UnsupportedEndpoint("RegistrationsBaseUrl/3.6.0".into()))?
             .join(&format!(
@@ -55,7 +89,7 @@ impl NuGetClient {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegistrationIndex {
     /// The number of registration pages in the index
     pub count: usize,
@@ -63,27 +97,30 @@ pub struct RegistrationIndex {
     pub items: Vec<RegistrationPage>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegistrationPage {
+    #[serde(rename = "@id")]
+    pub id: String,
+    pub parent: String,
     /// The number of registration leaves in the page.
     pub count: usize,
-    pub items: Vec<RegistrationLeaf>,
-    pub lower: String,
-    pub upper: String,
+    pub items: Option<Vec<RegistrationLeaf>>,
+    pub lower: Version,
+    pub upper: Version,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegistrationLeaf {
     pub catalog_entry: CatalogEntry,
     pub package_content: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogEntry {
     pub id: String,
-    pub version: String, // TODO: this will eventually be a (NuGet) semver version
+    pub version: Version,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authors: Option<Authors>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -116,21 +153,21 @@ pub struct CatalogEntry {
     pub vulnerabilities: Option<Vec<Vulnerability>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Authors {
     One(String),
     Many(Vec<String>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Tags {
     One(String),
     Many(Vec<String>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DependencyGroup {
     pub target_framework: Option<String>,
@@ -138,7 +175,7 @@ pub struct DependencyGroup {
     pub dependencies: Option<Vec<Dependency>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Dependency {
     pub id: String,
@@ -146,7 +183,7 @@ pub struct Dependency {
     pub range: Option<String>, // TODO: what type is this, actually?...
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageDeprecation {
     pub reasons: Vec<DeprecationReason>,
@@ -154,14 +191,14 @@ pub struct PackageDeprecation {
     pub message: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vulnerability {
     pub advisory_url: String,
     pub severity: Severity,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Severity {
     #[serde(rename = "0")]
     Low,
@@ -173,7 +210,7 @@ pub enum Severity {
     Critical,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum DeprecationReason {
     Legacy,
     CriticalBugs,

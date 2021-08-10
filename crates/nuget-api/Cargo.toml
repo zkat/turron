@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 ruget-common = { path = "../ruget-common" }
+ruget-semver = { path = "../ruget-semver" }
 # NOTE: This is some duplication because serde insists on being a toplevel
 # dep. You should only use this crate from `ruget-common` either way, and this
 # must be kept in sync with the version there.

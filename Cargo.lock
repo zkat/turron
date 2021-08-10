@@ -380,6 +380,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chrono-humanize"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2eddc119501d583fd930cb92144e605f44e0252c38dd89d9247fffa1993375cb"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "cipher"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1240,6 +1249,7 @@ name = "nuget-api"
 version = "0.1.0"
 dependencies = [
  "ruget-common",
+ "ruget-semver",
  "serde 1.0.127",
 ]
 
@@ -1332,6 +1342,12 @@ name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
+
+[[package]]
+name = "owo-colors"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2fe43bf372b08cc9ccee5144715db59c79ab00168bbe4cf0d274dc0d5f64d7f"
 
 [[package]]
 name = "parking"
@@ -1683,6 +1699,9 @@ dependencies = [
  "nuget-api",
  "ruget-command",
  "ruget-common",
+ "ruget-semver",
+ "term_grid",
+ "term_size",
 ]
 
 [[package]]
@@ -1692,6 +1711,7 @@ dependencies = [
  "async-trait",
  "clap",
  "log",
+ "owo-colors",
  "ruget-common",
  "ruget-config",
  "serde_json",
@@ -1702,6 +1722,7 @@ name = "ruget-common"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "chrono-humanize",
  "miette",
  "miette-utils",
  "semver 1.0.4",
@@ -2118,6 +2139,15 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "term_grid"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7c9eb7705cb3f0fd71d3955b23db6d372142ac139e8c473952c93bf3c3dc4b7"
+dependencies = [
+ "unicode-width",
 ]
 
 [[package]]
