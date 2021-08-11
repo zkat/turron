@@ -346,15 +346,15 @@ pub enum ViewError {
 }
 
 impl Diagnostic for ViewError {
-    fn code(&self) -> &(dyn std::fmt::Display) {
-        match self {
+    fn code(&self) -> Box<dyn std::fmt::Display> {
+        Box::new(match self {
             ViewError::VersionNotFound(_, _) => &"ruget::view::version_not_found",
             ViewError::InvalidPackageSpec => &"ruget::view::invalid_package_spec",
             ViewError::InvalidAttribute => &"ruget::view::invalid_attribute",
-        }
+        })
     }
 
-    fn help(&self) -> Option<&(dyn std::fmt::Display)> {
+    fn help(&self) -> Option<Box<dyn std::fmt::Display>> {
         match self {
             // TODO: I guess this is good motivation to change miette...
             // ViewError::VersionNotFound(id, _) => Some(&format!("Try running `ruget view {} versions`", id))
@@ -364,5 +364,6 @@ impl Diagnostic for ViewError {
                 Some(&"Use `ruget view --help` to see what attributes are supported")
             }
         }
+        .map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
 }

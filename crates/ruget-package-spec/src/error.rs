@@ -15,12 +15,12 @@ pub struct PackageSpecError {
 }
 
 impl Diagnostic for PackageSpecError {
-    fn code(&self) -> &(dyn std::fmt::Display) {
-        &"ruget::package_spec::no_parse"
+    fn code(&self) -> Box<dyn std::fmt::Display> {
+        Box::new(&"ruget::package_spec::no_parse")
     }
 
-    fn help(&self) -> Option<&(dyn std::fmt::Display)> {
-        Some(&"Please fix your spec. Go look up wherever they're documented idk.")
+    fn help(&self) -> Option<Box<dyn std::fmt::Display>> {
+        Some(Box::new(&"Please fix your spec. Go look up wherever they're documented idk."))
     }
 }
 

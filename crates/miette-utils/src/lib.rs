@@ -11,8 +11,8 @@ pub struct DiagnosticError {
 }
 
 impl Diagnostic for DiagnosticError {
-    fn code(&self) -> &(dyn std::fmt::Display) {
-        &self.code
+    fn code<'a>(&'a self) -> Box<dyn std::fmt::Display + 'a> {
+        Box::new(&self.code)
     }
 }
 

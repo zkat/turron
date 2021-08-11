@@ -63,9 +63,9 @@ pub enum NuGetApiError {
 }
 
 impl Diagnostic for NuGetApiError {
-    fn code(&self) -> &(dyn std::fmt::Display) {
+    fn code(&self) -> Box<dyn std::fmt::Display> {
         use NuGetApiError::*;
-        match self {
+        Box::new(match self {
             SurfError(_, _) => &"ruget::api::generic_http",
             InvalidSource(_) => &"ruget::api::invalid_source",
             UrlParseError(_) => &"ruget::api::invalid_url",
@@ -78,10 +78,10 @@ impl Diagnostic for NuGetApiError {
             BadResponse(_) => &"ruget::api::unexpected_response",
             BadApiKey(_) => &"ruget::api::bad_api_key",
             BadJson { .. } => &"ruget::api::bad_json",
-        }
+        })
     }
 
-    fn help(&self) -> Option<&(dyn std::fmt::Display)> {
+    fn help(&self) -> Option<Box<dyn std::fmt::Display>> {
         use NuGetApiError::*;
         match self {
             SurfError(_, _) => None,
@@ -96,7 +96,7 @@ impl Diagnostic for NuGetApiError {
             RegistrationPageNotFound => Some(&"Are you sure you used the right URL? This might also happen if your API key is invalid."),
             BadResponse(_) => Some(&"This is likely a bug with the NuGet API (or its documentation). Please report it."),
             BadJson { .. } => Some(&"This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
-        }
+        }.map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
     fn snippets(&self) -> Option<Box<dyn Iterator<Item = DiagnosticSnippet>>> {
         use NuGetApiError::*;

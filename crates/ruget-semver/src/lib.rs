@@ -93,11 +93,11 @@ struct SemverParseError<I> {
 }
 
 impl Diagnostic for SemverError {
-    fn code(&self) -> &(dyn fmt::Display) {
-        &"ruget::semver::no_parse"
+    fn code(&self) -> Box<dyn fmt::Display> {
+        Box::new(&"ruget::semver::no_parse")
     }
 
-    fn help(&self) -> Option<&(dyn fmt::Display)> {
+    fn help(&self) -> Option<Box<dyn fmt::Display>> {
         None
     }
 

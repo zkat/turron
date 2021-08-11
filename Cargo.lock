@@ -1167,9 +1167,9 @@ checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
 name = "miette"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "862071793f2cc20b057c523425e3eea06b6e9116f0a641a93b332077c9b1209b"
+checksum = "12cee223f727db3382779d10a34370c57215c60bf48c1a9132e1da4fface5268"
 dependencies = [
  "indenter",
  "thiserror",

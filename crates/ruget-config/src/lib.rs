@@ -30,8 +30,8 @@ pub enum RuGetConfigError {
 }
 
 impl Diagnostic for RuGetConfigError {
-    fn code(&self) -> &(dyn std::fmt::Display) {
-        &"config::error"
+    fn code(&self) -> Box<dyn std::fmt::Display> {
+        Box::new(&"config::error")
     }
 }
 

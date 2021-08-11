@@ -7,6 +7,6 @@ edition = "2018"
 
 [dependencies]
 # NOTE: Manually keep in sync with ruget-common.
-miette = "0.3.1"
+miette = "0.4.0"
 # miette = { path = "../../../miette" }
 thiserror = "1.0.26"
