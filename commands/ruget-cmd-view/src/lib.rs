@@ -55,6 +55,7 @@ impl RuGetCommand for ViewCmd {
         };
         match &self.field.as_deref() {
             Some("versions") => self.print_versions(&client, package_id).await,
+            Some("readme") => self.print_readme(&client, package_id, &requested).await,
             None => {
                 self.print_version_details(&client, package_id, &requested)
                     .await
@@ -127,6 +128,17 @@ impl ViewCmd {
             // Draw the table
             println!("{}", output_table);
         }
+        Ok(())
+    }
+
+    async fn print_readme(
+        &self,
+        client: &NuGetClient,
+        package_id: &str,
+        requested: &VersionReq,
+    ) -> Result<()> {
+        let md = format!("# {}\n\nThis is the **readme** for {}", package_id, requested);
+        termimad::print_text(&md);
         Ok(())
     }
 

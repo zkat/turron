@@ -8,9 +8,11 @@ use ruget_common::{
 
 use crate::errors::NuGetApiError;
 
+pub use content::*;
 pub use registration::*;
 pub use search::*;
 
+mod content;
 mod push;
 mod registration;
 mod relist;
