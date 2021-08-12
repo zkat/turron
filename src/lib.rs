@@ -26,6 +26,7 @@ use ruget_cmd_view::ViewCmd;
     setting = clap::AppSettings::ColoredHelp,
     setting = clap::AppSettings::DisableHelpSubcommand,
     setting = clap::AppSettings::DeriveDisplayOrder,
+    setting = clap::AppSettings::InferSubcommands,
 )]
 pub struct RuGet {
     #[clap(global = true, long = "root", about = "Package path to operate on.")]

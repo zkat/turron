@@ -5,11 +5,9 @@ use ruget_command::{
     ruget_config::{RuGetConfig, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::{
-    miette_utils::{DiagnosticResult as Result},
-};
+use ruget_common::miette_utils::DiagnosticResult as Result;
 
-use subcommands::{SummaryCmd, VersionsCmd, ReadmeCmd};
+use subcommands::{ReadmeCmd, SummaryCmd, VersionsCmd};
 
 mod error;
 mod subcommands;
@@ -40,6 +38,9 @@ pub enum ViewSubCmd {
 }
 
 #[derive(Debug, Clap)]
+#[clap(
+    setting = clap::AppSettings::InferSubcommands,
+)]
 pub struct ViewCmd {
     #[clap(subcommand)]
     subcommand: ViewSubCmd,
@@ -53,7 +54,6 @@ impl RuGetCommand for ViewCmd {
             ViewSubCmd::Summary(summary) => summary.execute().await,
             ViewSubCmd::Readme(readme) => readme.execute().await,
             ViewSubCmd::Versions(versions) => versions.execute().await,
-
         }
     }
 }
