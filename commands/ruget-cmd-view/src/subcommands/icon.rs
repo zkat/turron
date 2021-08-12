@@ -70,9 +70,16 @@ impl IconCmd {
                     file.read_to_end(&mut buf)
                         .into_diagnostic(&"ruget::view::nupkg_read_file")?;
 
+                    let height = if let Some((_, h)) = term_size::dimensions() {
+                        h - 10
+                    } else {
+                        50
+                    };
+                    let height = std::cmp::min(u32::MAX as usize, height) as u32;
                     let conf = viuer::Config {
                         transparent: true,
                         absolute_offset: false,
+                        height: Some(height),
                         ..Default::default()
                     };
                     let img = image::load_from_memory(&buf)
