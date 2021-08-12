@@ -7,7 +7,7 @@ use ruget_command::{
 };
 use ruget_common::miette_utils::DiagnosticResult as Result;
 
-use subcommands::{ReadmeCmd, SummaryCmd, VersionsCmd};
+use subcommands::{IconCmd, ReadmeCmd, SummaryCmd, VersionsCmd};
 
 mod error;
 mod subcommands;
@@ -35,6 +35,13 @@ pub enum ViewSubCmd {
         setting = clap::AppSettings::DeriveDisplayOrder,
     )]
     Readme(ReadmeCmd),
+    #[clap(
+        about = "Show package icon, if any",
+        setting = clap::AppSettings::ColoredHelp,
+        setting = clap::AppSettings::DisableHelpSubcommand,
+        setting = clap::AppSettings::DeriveDisplayOrder,
+    )]
+    Icon(IconCmd),
 }
 
 #[derive(Debug, Clap)]
@@ -53,6 +60,7 @@ impl RuGetCommand for ViewCmd {
         match self.subcommand {
             ViewSubCmd::Summary(summary) => summary.execute().await,
             ViewSubCmd::Readme(readme) => readme.execute().await,
+            ViewSubCmd::Icon(icon) => icon.execute().await,
             ViewSubCmd::Versions(versions) => versions.execute().await,
         }
     }
@@ -61,6 +69,9 @@ impl RuGetCommand for ViewCmd {
 impl RuGetConfigLayer for ViewCmd {
     fn layer_config(&mut self, args: &ArgMatches, conf: &RuGetConfig) -> Result<()> {
         match self.subcommand {
+            ViewSubCmd::Icon(ref mut icon) => {
+                icon.layer_config(args.subcommand_matches("icon").unwrap(), conf)
+            }
             ViewSubCmd::Readme(ref mut readme) => {
                 readme.layer_config(args.subcommand_matches("readme").unwrap(), conf)
             }

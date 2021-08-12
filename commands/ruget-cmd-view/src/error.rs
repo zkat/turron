@@ -12,6 +12,8 @@ pub enum ViewError {
     VersionNotFound(String, VersionReq),
     #[error("{0}@{1} does not have a readme")]
     ReadmeNotFound(String, Version),
+    #[error("{0}@{1} does not have an icon")]
+    IconNotFound(String, Version),
 }
 
 impl Diagnostic for ViewError {
@@ -20,6 +22,7 @@ impl Diagnostic for ViewError {
             ViewError::VersionNotFound(_, _) => &"ruget::view::version_not_found",
             ViewError::InvalidPackageSpec => &"ruget::view::invalid_package_spec",
             ViewError::ReadmeNotFound(_, _) => &"ruget::view::readme_not_found",
+            ViewError::IconNotFound(_, _) => &"ruget::view::icon_not_found",
         })
     }
 
@@ -30,6 +33,7 @@ impl Diagnostic for ViewError {
             ViewError::InvalidPackageSpec => None,
             ViewError::VersionNotFound(_, _) => Some(&"Try running `ruget view <id> versions`"),
             ViewError::ReadmeNotFound(_, _) => Some(&"ruget only supports READMEs included in the package itself, which is not commonly used."),
+            ViewError::IconNotFound(_, _) => Some(&"ruget only supports icons included in the package itself, not iconUrl."),
         }
         .map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
