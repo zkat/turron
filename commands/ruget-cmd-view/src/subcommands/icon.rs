@@ -1,6 +1,4 @@
-use std::io::{Cursor, Read};
-
-use nuget_api::v3::NuGetClient;
+use nuget_api::{v3::NuGetClient, NuGetApiError};
 use ruget_command::{
     async_trait::async_trait,
     clap::{self, Clap},
@@ -8,10 +6,12 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::{
+    miette::Diagnostic,
+    miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+};
 use ruget_package_spec::PackageSpec;
 use ruget_semver::{Version, VersionReq};
-use zip::ZipArchive;
 
 use crate::error::ViewError;
 
@@ -59,36 +59,32 @@ impl IconCmd {
         let nuspec = client.nuspec(package_id, &version).await?;
         if let Some(icon) = &nuspec.metadata.icon {
             let icon = icon.to_lowercase();
-            let nupkg = Cursor::new(client.nupkg(package_id, &version).await?);
-            let mut zip = ZipArchive::new(nupkg).into_diagnostic(&"ruget::view::nupkg_open")?;
-            for i in 0..zip.len() {
-                let mut file = zip
-                    .by_index(i)
-                    .into_diagnostic(&"ruget::view::nupkg_read_file")?;
-                if file.is_file() && file.name().to_lowercase() == icon {
-                    let mut buf = Vec::new();
-                    file.read_to_end(&mut buf)
-                        .into_diagnostic(&"ruget::view::nupkg_read_file")?;
-
-                    let height = if let Some((_, h)) = term_size::dimensions() {
-                        h - 10
-                    } else {
-                        50
-                    };
-                    let height = std::cmp::min(u32::MAX as usize, height) as u32;
-                    let conf = viuer::Config {
-                        transparent: true,
-                        absolute_offset: false,
-                        height: Some(height),
-                        ..Default::default()
-                    };
-                    let img = image::load_from_memory(&buf)
-                        .into_diagnostic(&"ruget::view::icon::image_load")?;
-                    viuer::print(&img, &conf).into_diagnostic(&"ruget::view::icon::image_print")?;
-                    return Ok(());
-                }
-            }
-            Err(ViewError::IconNotFound(nuspec.metadata.id, version).into())
+            let data = client
+                .get_from_nupkg(package_id, &version, &icon)
+                .await
+                .map_err(|err| -> Box<dyn Diagnostic + Send + Sync> {
+                    match err {
+                        NuGetApiError::FileNotFound(_, _, _) => {
+                            Box::new(ViewError::IconNotFound(nuspec.metadata.id, version))
+                        }
+                        _ => Box::new(err),
+                    }
+                })?;
+            let conf = viuer::Config {
+                transparent: true,
+                absolute_offset: false,
+                // Don't bother growing with the terminal. Just print a
+                // predictable size. viuer stack overflows if images are "too
+                // big". So this should generally stop that.
+                //
+                // Icons aren't meant to be that big anyway
+                width: Some(25),
+                ..Default::default()
+            };
+            let img =
+                image::load_from_memory(&data).into_diagnostic(&"ruget::view::icon::image_load")?;
+            viuer::print(&img, &conf).into_diagnostic(&"ruget::view::icon::image_print")?;
+            Ok(())
         } else {
             Err(ViewError::IconNotFound(nuspec.metadata.id, version).into())
         }

@@ -1,17 +1,20 @@
-use std::{cmp, sync::Arc};
+use std::{cmp, io, sync::Arc};
 
 use ruget_common::{
     miette::{Diagnostic, DiagnosticSnippet, SourceSpan},
-    serde_json, quick_xml, surf,
+    quick_xml, serde_json, surf,
     thiserror::{self, Error},
 };
 
 #[derive(Error, Debug)]
 pub enum NuGetApiError {
     /// Returned when a generic http client-related error has occurred.
-    // #[label("ruget::api::generic_http")]
     #[error("Request error:\n\t{0}")]
     SurfError(surf::Error, String),
+
+    /// std::io::Error wrapper
+    #[error(transparent)]
+    IoError(#[from] io::Error),
 
     /// Source does not seem to be a valid v3 source.
     #[error("Source does not appear to be a valid NuGet API v3 source: {0}")]
@@ -68,6 +71,14 @@ pub enum NuGetApiError {
     /// Unexpected response
     #[error("Unexpected or undocumented response: {0}")]
     BadResponse(surf::StatusCode),
+
+    /// File was not found in nupkg.
+    #[error("File not found in .nupkg")]
+    FileNotFound(String, ruget_semver::Version, String),
+
+    /// Something went wrong while reading/writing a .nupkg
+    #[error(transparent)]
+    ZipError(#[from] zip::result::ZipError),
 }
 
 impl Diagnostic for NuGetApiError {
@@ -87,6 +98,9 @@ impl Diagnostic for NuGetApiError {
             BadApiKey(_) => &"ruget::api::bad_api_key",
             BadJson { .. } => &"ruget::api::bad_json",
             BadXml { .. } => &"ruget::api::bad_xml",
+            IoError(_) => &"ruget::api::io_error",
+            FileNotFound(_, _, _) => &"ruget::api::file_not_found",
+            ZipError(_) => &"ruget::api::zip_error",
         })
     }
 
@@ -106,6 +120,9 @@ impl Diagnostic for NuGetApiError {
             BadResponse(_) => Some(&"This is likely a bug with the NuGet API (or its documentation). Please report it."),
             BadJson { .. } => Some(&"This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
             BadXml { .. } => Some(&"This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
+            IoError(_) => None,
+            FileNotFound(_, _, _) => None,
+            ZipError(_) => None,
         }.map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
     fn snippets(&self) -> Option<Box<dyn Iterator<Item = DiagnosticSnippet>>> {

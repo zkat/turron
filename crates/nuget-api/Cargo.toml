@@ -12,3 +12,4 @@ ruget-semver = { path = "../ruget-semver" }
 # dep. You should only use this crate from `ruget-common` either way, and this
 # must be kept in sync with the version there.
 serde = "1.0.126"
+zip = "0.5.13"

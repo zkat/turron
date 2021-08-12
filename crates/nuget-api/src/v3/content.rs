@@ -1,13 +1,15 @@
+use std::io::{Cursor, Read};
 use std::sync::Arc;
 
 pub use ruget_common::surf::Body;
 use ruget_common::{
     quick_xml,
     serde::{Deserialize, Serialize},
-    serde_json,
+    serde_json, smol,
     surf::{self, StatusCode, Url},
 };
 use ruget_semver::Version;
+use zip::ZipArchive;
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
@@ -152,6 +154,35 @@ impl NuGetClient {
             code => Err(BadResponse(code)),
         }
     }
+
+    pub async fn get_from_nupkg(
+        &self,
+        package_id: impl AsRef<str>,
+        version: &Version,
+        filename: impl AsRef<str>,
+    ) -> Result<Vec<u8>, NuGetApiError> {
+        let package_id = package_id.as_ref().to_string();
+        let filename = filename.as_ref().to_lowercase();
+        let version = version.clone();
+        let nupkg = Cursor::new(self.nupkg(&package_id, &version).await?);
+        smol::unblock(move || {
+            let mut zip = ZipArchive::new(nupkg)?;
+            for i in 0..zip.len() {
+                let mut file = zip.by_index(i)?;
+                if file.is_file() && file.name().to_lowercase() == filename {
+                    let mut buf = Vec::new();
+                    file.read_to_end(&mut buf)?;
+                    return Ok(buf);
+                }
+            }
+            Err(NuGetApiError::FileNotFound(
+                package_id,
+                version.clone(),
+                filename,
+            ))
+        })
+        .await
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -170,7 +201,7 @@ pub struct NuSpec {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NuSpecMetadata {
     // Required fields
-    #[serde(rename = "$unflatten=id")]
+    #[serde(rename = "$unflatten=id", default)]
     pub id: String,
     #[serde(rename = "$unflatten=version")]
     pub version: Version,
@@ -218,7 +249,7 @@ pub struct NuSpecMetadata {
 
     // Collections
     #[serde(rename = "$unflatten=dependencies")]
-    pub dependencies: Option<Vec<NuSpecDependency>>,
+    pub dependencies: Option<NuSpecDependencies>,
     #[serde(rename = "$unflatten=frameworkAssemblies")]
     pub framework_assemblies: Option<Vec<NuSpecFrameworkAssembly>>,
     #[serde(rename = "$unflatten=packageTypes")]
@@ -246,6 +277,22 @@ pub struct NuSpecFile {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NuSpecDependencies {
+    #[serde(rename = "$unflatten=group", default)]
+    groups: Vec<NuSpecDependencyGroup>,
+    #[serde(rename = "$unflatten=dependency", default)]
+    dependencies: Vec<NuSpecDependency>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NuSpecDependencyGroup {
+    target_framework: Option<String>,
+    #[serde(rename = "dependency", default)]
+    dependencies: Vec<NuSpecDependency>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NuSpecDependency {
     pub id: String,
     pub version: Version,
@@ -254,10 +301,9 @@ pub struct NuSpecDependency {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NuSpecFrameworkAssembly {
-    #[serde(rename = "assemblyName")]
     pub assembly_name: String,
-    #[serde(rename = "targetFramework")]
     pub target_framework: String,
 }
 

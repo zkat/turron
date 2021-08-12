@@ -1,6 +1,4 @@
-use std::io::{Cursor, Read};
-
-use nuget_api::v3::NuGetClient;
+use nuget_api::{v3::NuGetClient, NuGetApiError};
 use ruget_command::{
     async_trait::async_trait,
     clap::{self, Clap},
@@ -8,12 +6,9 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::{
-    miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
-};
+use ruget_common::{miette::Diagnostic, miette_utils::DiagnosticResult as Result};
 use ruget_package_spec::PackageSpec;
 use ruget_semver::{Version, VersionReq};
-use zip::ZipArchive;
 
 use crate::error::ViewError;
 
@@ -61,21 +56,20 @@ impl ReadmeCmd {
         let nuspec = client.nuspec(package_id, &version).await?;
         if let Some(readme) = &nuspec.metadata.readme {
             let readme = readme.to_lowercase();
-            let nupkg = Cursor::new(client.nupkg(package_id, &version).await?);
-            let mut zip = ZipArchive::new(nupkg).into_diagnostic(&"ruget::view::nupkg_open")?;
-            for i in 0..zip.len() {
-                let mut file = zip
-                    .by_index(i)
-                    .into_diagnostic(&"ruget::view::nupkg_read_file")?;
-                if file.is_file() && file.name().to_lowercase() == readme {
-                    let mut buf = String::new();
-                    file.read_to_string(&mut buf)
-                        .into_diagnostic(&"ruget::view::nupkg_read_file")?;
-                    termimad::print_text(&buf);
-                    return Ok(());
-                }
-            }
-            Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
+            let data = client
+                .get_from_nupkg(package_id, &version, &readme)
+                .await
+                .map_err(|err| -> Box<dyn Diagnostic + Send + Sync> {
+                    match err {
+                        NuGetApiError::FileNotFound(_, _, _) => {
+                            Box::new(ViewError::ReadmeNotFound(nuspec.metadata.id, version))
+                        }
+                        _ => Box::new(err),
+                    }
+                })?;
+            let readme_str = String::from_utf8(data).map_err(ViewError::InvalidUtf8)?;
+            termimad::print_text(&readme_str);
+            Ok(())
         } else {
             Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
         }

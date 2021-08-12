@@ -1550,6 +1550,7 @@ dependencies = [
  "ruget-common",
  "ruget-semver",
  "serde 1.0.127",
+ "zip",
 ]
 
 [[package]]
@@ -2100,7 +2101,6 @@ dependencies = [
  "term_size",
  "termimad",
  "viuer",
- "zip",
 ]
 
 [[package]]
