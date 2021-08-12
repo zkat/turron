@@ -55,6 +55,53 @@ impl NuGetClient {
         }
     }
 
+    pub async fn nupkg(
+        &self,
+        package_id: impl AsRef<str>,
+        version: &Version,
+    ) -> Result<Vec<u8>, NuGetApiError> {
+        use NuGetApiError::*;
+
+        // Version needs to undergo "normalization", which means lower-casing
+        // and blowing away build.
+        let mut version = version.clone();
+        version.build.clear();
+
+        let url = self
+            .endpoints
+            .package_content
+            .clone()
+            .ok_or_else(|| UnsupportedEndpoint("PackageBaseAddress/3.0.0".into()))?
+            .join(&format!(
+                "{}/{}/{}.{}.nupkg",
+                &package_id.as_ref().to_lowercase(),
+                version.to_string().to_lowercase(),
+                &package_id.as_ref().to_lowercase(),
+                version.to_string().to_lowercase(),
+            ))?;
+
+        let req = surf::get(url.clone());
+
+        let mut res = self
+            .client
+            .send(req)
+            .await
+            .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+
+        match res.status() {
+            StatusCode::Ok => {
+                let body = res
+                    .body_bytes()
+                    .await
+                    .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
+                // TODO: I'm so sorry. The zip parser is sync :(
+                Ok(body)
+            }
+            StatusCode::NotFound => Err(PackageNotFound),
+            code => Err(BadResponse(code)),
+        }
+    }
+
     pub async fn nuspec(
         &self,
         package_id: impl AsRef<str>,

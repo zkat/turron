@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{Cursor, Read};
 
 use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, RegistrationIndex, RegistrationLeaf, Tags};
@@ -21,6 +22,7 @@ use ruget_common::{
 use ruget_package_spec::PackageSpec;
 use ruget_semver::{Version, VersionReq};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
+use zip::ZipArchive;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct ViewCmd {
@@ -142,12 +144,22 @@ impl ViewCmd {
         let version = self.pick_version(package_id, requested, versions).await?;
         let nuspec = client.nuspec(package_id, &version).await?;
         if let Some(readme) = &nuspec.metadata.readme {
-            let md = format!(
-                "# {}\n\nThis is the **readme** for `{}@{}` in file {}\n\n",
-                nuspec.metadata.id, nuspec.metadata.id, requested, readme,
-            );
-            termimad::print_text(&md);
-            Ok(())
+            let readme = readme.to_lowercase();
+            let nupkg = Cursor::new(client.nupkg(package_id, &version).await?);
+            let mut zip = ZipArchive::new(nupkg).into_diagnostic(&"ruget::view::nupkg_open")?;
+            for i in 0..zip.len() {
+                let mut file = zip
+                    .by_index(i)
+                    .into_diagnostic(&"ruget::view::nupkg_read_file")?;
+                if file.is_file() && file.name().to_lowercase() == readme {
+                    let mut buf = String::new();
+                    file.read_to_string(&mut buf)
+                        .into_diagnostic(&"ruget::view::nupkg_read_file")?;
+                    termimad::print_text(&buf);
+                    return Ok(());
+                }
+            }
+            Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
         } else {
             Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
         }
