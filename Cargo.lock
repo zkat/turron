@@ -1644,6 +1644,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.22.0"
+source = "git+https://github.com/tafia/quick-xml#2dbb753ff0d06155d787cf894d0b0d1ce2568361"
+dependencies = [
+ "memchr",
+ "serde 1.0.127",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1875,7 +1884,6 @@ dependencies = [
  "owo-colors",
  "ruget-common",
  "ruget-config",
- "serde_json",
 ]
 
 [[package]]
@@ -1886,6 +1894,7 @@ dependencies = [
  "chrono-humanize",
  "miette",
  "miette-utils",
+ "quick-xml",
  "semver 1.0.4",
  "serde 1.0.127",
  "serde_json",

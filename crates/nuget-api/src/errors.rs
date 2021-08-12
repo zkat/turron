@@ -2,7 +2,7 @@ use std::{cmp, sync::Arc};
 
 use ruget_common::{
     miette::{Diagnostic, DiagnosticSnippet, SourceSpan},
-    serde_json, surf,
+    serde_json, quick_xml, surf,
     thiserror::{self, Error},
 };
 
@@ -57,6 +57,14 @@ pub enum NuGetApiError {
         json: Arc<String>,
     },
 
+    /// Got some bad XML we couldn't parse.
+    #[error("Received some bad XML from the source. Unable to parse.")]
+    BadXml {
+        source: quick_xml::DeError,
+        url: String,
+        json: Arc<String>,
+    },
+
     /// Unexpected response
     #[error("Unexpected or undocumented response: {0}")]
     BadResponse(surf::StatusCode),
@@ -78,6 +86,7 @@ impl Diagnostic for NuGetApiError {
             BadResponse(_) => &"ruget::api::unexpected_response",
             BadApiKey(_) => &"ruget::api::bad_api_key",
             BadJson { .. } => &"ruget::api::bad_json",
+            BadXml { .. } => &"ruget::api::bad_xml",
         })
     }
 
@@ -96,6 +105,7 @@ impl Diagnostic for NuGetApiError {
             RegistrationPageNotFound => Some(&"Are you sure you used the right URL? This might also happen if your API key is invalid."),
             BadResponse(_) => Some(&"This is likely a bug with the NuGet API (or its documentation). Please report it."),
             BadJson { .. } => Some(&"This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
+            BadXml { .. } => Some(&"This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
         }.map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
     fn snippets(&self) -> Option<Box<dyn Iterator<Item = DiagnosticSnippet>>> {

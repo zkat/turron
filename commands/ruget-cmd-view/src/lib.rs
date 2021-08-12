@@ -8,13 +8,14 @@ use ruget_command::{
     log,
     owo_colors::{colors::*, OwoColorize},
     ruget_config::{self, RuGetConfigLayer},
-    serde_json, RuGetCommand,
+    RuGetCommand,
 };
 use ruget_common::{
     chrono::Datelike,
     chrono_humanize::HumanTime,
     miette::Diagnostic,
     miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+    serde_json,
     thiserror::{self, Error},
 };
 use ruget_package_spec::PackageSpec;
@@ -137,9 +138,19 @@ impl ViewCmd {
         package_id: &str,
         requested: &VersionReq,
     ) -> Result<()> {
-        let md = format!("# {}\n\nThis is the **readme** for {}", package_id, requested);
-        termimad::print_text(&md);
-        Ok(())
+        let versions = client.versions(&package_id).await?;
+        let version = self.pick_version(package_id, requested, versions).await?;
+        let nuspec = client.nuspec(package_id, &version).await?;
+        if let Some(readme) = &nuspec.metadata.readme {
+            let md = format!(
+                "# {}\n\nThis is the **readme** for `{}@{}` in file {}\n\n",
+                nuspec.metadata.id, nuspec.metadata.id, requested, readme,
+            );
+            termimad::print_text(&md);
+            Ok(())
+        } else {
+            Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
+        }
     }
 
     async fn print_version_details(
@@ -355,6 +366,8 @@ pub enum ViewError {
     InvalidPackageSpec,
     #[error("Failed to find a version for {0} that satisfied {1}")]
     VersionNotFound(String, VersionReq),
+    #[error("{0}@{1} does not have a readme")]
+    ReadmeNotFound(String, Version),
 }
 
 impl Diagnostic for ViewError {
@@ -363,6 +376,7 @@ impl Diagnostic for ViewError {
             ViewError::VersionNotFound(_, _) => &"ruget::view::version_not_found",
             ViewError::InvalidPackageSpec => &"ruget::view::invalid_package_spec",
             ViewError::InvalidAttribute => &"ruget::view::invalid_attribute",
+            ViewError::ReadmeNotFound(_, _) => &"ruget::view::readme_not_found",
         })
     }
 
@@ -375,6 +389,7 @@ impl Diagnostic for ViewError {
             ViewError::InvalidAttribute => {
                 Some(&"Use `ruget view --help` to see what attributes are supported")
             }
+            ViewError::ReadmeNotFound(_, _) => Some(&"ruget only supports READMEs included in the package itself, which is not commonly used."),
         }
         .map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
