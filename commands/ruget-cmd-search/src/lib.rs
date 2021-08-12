@@ -7,9 +7,12 @@ use ruget_command::{
     clap::{self, Clap},
     log,
     ruget_config::{self, RuGetConfigLayer},
-    serde_json, RuGetCommand,
+    RuGetCommand,
 };
-use ruget_common::{miette_utils::DiagnosticResult as Result, miette_utils::IntoDiagnostic};
+use ruget_common::{
+    miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+    serde_json,
+};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct SearchCmd {

@@ -16,6 +16,8 @@ semver = { version = "1.0.4", features = ["serde"] }
 smol = "1.2.5"
 surf = "2.2.0"
 serde_json = "1.0.66"
+# Switch to new quick-xml when a version with https://github.com/tafia/quick-xml/pull/298 ships
+quick-xml = { git = "https://github.com/tafia/quick-xml", features = ["serialize"] }
 
 # Any crate that uses this must also have this version of serde as a direct
 # dependency. Serde's macros specifically require serde to be "true" toplevel

@@ -225,12 +225,12 @@ impl fmt::Display for Identifier {
 
 #[derive(Clone, Debug)]
 pub struct Version {
-    major: u64,
-    minor: u64,
-    patch: u64,
-    revision: u64,
-    build: Vec<Identifier>,
-    pre_release: Vec<Identifier>,
+    pub major: u64,
+    pub minor: u64,
+    pub patch: u64,
+    pub revision: u64,
+    pub build: Vec<Identifier>,
+    pub pre_release: Vec<Identifier>,
 }
 
 impl Version {

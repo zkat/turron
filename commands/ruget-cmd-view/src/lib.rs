@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{Cursor, Read};
 
 use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, RegistrationIndex, RegistrationLeaf, Tags};
@@ -8,18 +9,20 @@ use ruget_command::{
     log,
     owo_colors::{colors::*, OwoColorize},
     ruget_config::{self, RuGetConfigLayer},
-    serde_json, RuGetCommand,
+    RuGetCommand,
 };
 use ruget_common::{
     chrono::Datelike,
     chrono_humanize::HumanTime,
     miette::Diagnostic,
     miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+    serde_json,
     thiserror::{self, Error},
 };
 use ruget_package_spec::PackageSpec;
 use ruget_semver::{Version, VersionReq};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
+use zip::ZipArchive;
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct ViewCmd {
@@ -55,6 +58,7 @@ impl RuGetCommand for ViewCmd {
         };
         match &self.field.as_deref() {
             Some("versions") => self.print_versions(&client, package_id).await,
+            Some("readme") => self.print_readme(&client, package_id, &requested).await,
             None => {
                 self.print_version_details(&client, package_id, &requested)
                     .await
@@ -128,6 +132,37 @@ impl ViewCmd {
             println!("{}", output_table);
         }
         Ok(())
+    }
+
+    async fn print_readme(
+        &self,
+        client: &NuGetClient,
+        package_id: &str,
+        requested: &VersionReq,
+    ) -> Result<()> {
+        let versions = client.versions(&package_id).await?;
+        let version = self.pick_version(package_id, requested, versions).await?;
+        let nuspec = client.nuspec(package_id, &version).await?;
+        if let Some(readme) = &nuspec.metadata.readme {
+            let readme = readme.to_lowercase();
+            let nupkg = Cursor::new(client.nupkg(package_id, &version).await?);
+            let mut zip = ZipArchive::new(nupkg).into_diagnostic(&"ruget::view::nupkg_open")?;
+            for i in 0..zip.len() {
+                let mut file = zip
+                    .by_index(i)
+                    .into_diagnostic(&"ruget::view::nupkg_read_file")?;
+                if file.is_file() && file.name().to_lowercase() == readme {
+                    let mut buf = String::new();
+                    file.read_to_string(&mut buf)
+                        .into_diagnostic(&"ruget::view::nupkg_read_file")?;
+                    termimad::print_text(&buf);
+                    return Ok(());
+                }
+            }
+            Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
+        } else {
+            Err(ViewError::ReadmeNotFound(nuspec.metadata.id, version).into())
+        }
     }
 
     async fn print_version_details(
@@ -343,6 +378,8 @@ pub enum ViewError {
     InvalidPackageSpec,
     #[error("Failed to find a version for {0} that satisfied {1}")]
     VersionNotFound(String, VersionReq),
+    #[error("{0}@{1} does not have a readme")]
+    ReadmeNotFound(String, Version),
 }
 
 impl Diagnostic for ViewError {
@@ -351,6 +388,7 @@ impl Diagnostic for ViewError {
             ViewError::VersionNotFound(_, _) => &"ruget::view::version_not_found",
             ViewError::InvalidPackageSpec => &"ruget::view::invalid_package_spec",
             ViewError::InvalidAttribute => &"ruget::view::invalid_attribute",
+            ViewError::ReadmeNotFound(_, _) => &"ruget::view::readme_not_found",
         })
     }
 
@@ -363,6 +401,7 @@ impl Diagnostic for ViewError {
             ViewError::InvalidAttribute => {
                 Some(&"Use `ruget view --help` to see what attributes are supported")
             }
+            ViewError::ReadmeNotFound(_, _) => Some(&"ruget only supports READMEs included in the package itself, which is not commonly used."),
         }
         .map(|s| -> Box<dyn std::fmt::Display> { Box::new(*s) })
     }
