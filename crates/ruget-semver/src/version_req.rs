@@ -156,18 +156,34 @@ impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Bound::*;
         use Predicate::*;
-        match (&self.lower, &self.upper) {
-            (Lower(Unbounded), Upper(Unbounded)) => write!(f, "*"),
-            (Lower(Unbounded), Upper(Including(v))) => write!(f, "<={}", v),
-            (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "<{}", v),
-            (Lower(Including(v)), Upper(Unbounded)) => write!(f, ">={}", v),
-            (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, ">{}", v),
-            (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "={}", v),
-            (Lower(Including(v)), Upper(Including(v2))) => write!(f, ">={} <={}", v, v2),
-            (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, ">={} <{}", v, v2),
-            (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, ">{} <={}", v, v2),
-            (Lower(Excluding(v)), Upper(Excluding(v2))) => write!(f, ">{} <{}", v, v2),
-            _ => unreachable!("does not make sense"),
+        if self.floating {
+            match (&self.lower, &self.upper) {
+                (Lower(Unbounded), Upper(Unbounded)) => write!(f, "*"),
+                (Lower(Unbounded), Upper(Including(v))) => write!(f, "<={}", v),
+                (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "<{}", v),
+                (Lower(Including(v)), Upper(Unbounded)) => write!(f, ">={}", v),
+                (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, ">{}", v),
+                (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "={}", v),
+                (Lower(Including(v)), Upper(Including(v2))) => write!(f, ">={} <={}", v, v2),
+                (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, ">={} <{}", v, v2),
+                (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, ">{} <={}", v, v2),
+                (Lower(Excluding(v)), Upper(Excluding(v2))) => write!(f, ">{} <{}", v, v2),
+                _ => unreachable!("does not make sense"),
+            }
+        } else {
+            match (&self.lower, &self.upper) {
+                (Lower(Unbounded), Upper(Unbounded)) => write!(f, "*"),
+                (Lower(Unbounded), Upper(Including(v))) => write!(f, "(,{}]", v),
+                (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "(,{})", v),
+                (Lower(Including(v)), Upper(Unbounded)) => write!(f, "[{},)", v),
+                (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, "({},)", v),
+                (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "[{}]", v),
+                (Lower(Including(v)), Upper(Including(v2))) => write!(f, "[{},{}]", v, v2),
+                (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, "[{},{})", v, v2),
+                (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, "({},{}]", v, v2),
+                (Lower(Excluding(v)), Upper(Excluding(v2))) => write!(f, "({},{})", v, v2),
+                _ => unreachable!("does not make sense"),
+            }
         }
     }
 }
