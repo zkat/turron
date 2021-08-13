@@ -1,0 +1,9 @@
+[package]
+name = "ruget-pick-version"
+version = "0.1.0"
+authors = ["Kat Marchán <kzm@zkat.tech>"]
+edition = "2018"
+
+[dependencies]
+ruget-common = { path = "../ruget-common" }
+ruget-semver = {path = "../ruget-semver" }

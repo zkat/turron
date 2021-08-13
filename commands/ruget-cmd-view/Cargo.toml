@@ -10,6 +10,7 @@ ruget-command = { path = "../../crates/ruget-command" }
 ruget-common = { path = "../../crates/ruget-common" }
 ruget-package-spec = { path = "../../crates/ruget-package-spec" }
 ruget-semver = { path = "../../crates/ruget-semver" }
+ruget-pick-version = { path = "../../crates/ruget-pick-version" }
 
 nu-table = "0.34.0"
 nu-ansi-term = "0.34.0"

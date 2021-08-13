@@ -68,6 +68,7 @@ impl VersionsCmd {
                 versions.push((leaf.catalog_entry.version, leaf.catalog_entry.published));
             }
         }
+        versions.sort_unstable();
         if self.json && !self.quiet {
             let mut map = HashMap::new();
             for (version, published) in versions {

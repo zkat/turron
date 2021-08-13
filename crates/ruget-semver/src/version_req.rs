@@ -52,6 +52,33 @@ impl Range {
         self
     }
 
+    fn has_pre(&self) -> bool {
+        use Bound::*;
+        use Predicate::*;
+
+        let lower_bound = match &self.lower {
+            Lower(Including(lower)) => !lower.pre_release.is_empty(),
+            Lower(Excluding(lower)) => !lower.pre_release.is_empty(),
+            Lower(Unbounded) => false,
+            _ => unreachable!(
+                "There should not have been an upper bound: {:#?}",
+                self.lower
+            ),
+        };
+
+        let upper_bound = match &self.upper {
+            Upper(Including(upper)) => !upper.pre_release.is_empty(),
+            Upper(Excluding(upper)) => !upper.pre_release.is_empty(),
+            Upper(Unbounded) => false,
+            _ => unreachable!(
+                "There should not have been a lower bound: {:#?}",
+                self.lower
+            ),
+        };
+
+        lower_bound || upper_bound
+    }
+
     fn at_least(p: Predicate) -> Option<Self> {
         Range::new(Bound::Lower(p), Bound::upper())
     }
@@ -356,6 +383,10 @@ impl VersionReq {
 
     pub fn is_floating(&self) -> bool {
         self.predicates.iter().any(|pred| pred.floating)
+    }
+
+    pub fn has_pre_release(&self) -> bool {
+        self.predicates.iter().any(|pred| pred.has_pre())
     }
 
     pub fn satisfies(&self, version: &Version) -> bool {

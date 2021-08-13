@@ -2096,6 +2096,7 @@ dependencies = [
  "ruget-command",
  "ruget-common",
  "ruget-package-spec",
+ "ruget-pick-version",
  "ruget-semver",
  "term_grid",
  "term_size",
@@ -2166,6 +2167,14 @@ dependencies = [
  "ruget-common",
  "ruget-semver",
  "url",
+]
+
+[[package]]
+name = "ruget-pick-version"
+version = "0.1.0"
+dependencies = [
+ "ruget-common",
+ "ruget-semver",
 ]
 
 [[package]]

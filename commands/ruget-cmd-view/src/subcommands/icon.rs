@@ -11,7 +11,7 @@ use ruget_common::{
     miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
 };
 use ruget_package_spec::PackageSpec;
-use ruget_semver::{Version, VersionReq};
+use ruget_semver::VersionReq;
 
 use crate::error::ViewError;
 
@@ -61,7 +61,8 @@ impl IconCmd {
         requested: &VersionReq,
     ) -> Result<()> {
         let versions = client.versions(&package_id).await?;
-        let version = self.pick_version(package_id, requested, versions).await?;
+        let version = ruget_pick_version::pick_version(requested, &versions[..])
+            .ok_or_else(|| ViewError::VersionNotFound(package_id.into(), requested.clone()))?;
         let nuspec = client.nuspec(package_id, &version).await?;
         if let Some(icon) = &nuspec.metadata.icon {
             let icon = icon.to_lowercase();
@@ -88,24 +89,6 @@ impl IconCmd {
             Ok(())
         } else {
             Err(ViewError::IconNotFound(nuspec.metadata.id, version).into())
-        }
-    }
-
-    async fn pick_version(
-        &self,
-        id: &str,
-        req: &VersionReq,
-        versions: Vec<Version>,
-    ) -> Result<Version> {
-        let pick = if req.is_floating() {
-            versions.into_iter().rev().find(|v| req.satisfies(v))
-        } else {
-            versions.into_iter().find(|v| req.satisfies(v))
-        };
-        if let Some(pick) = pick {
-            Ok(pick)
-        } else {
-            Err(ViewError::VersionNotFound(id.into(), req.clone()).into())
         }
     }
 }

@@ -59,7 +59,8 @@ impl SummaryCmd {
         requested: &VersionReq,
     ) -> Result<()> {
         let versions = client.versions(&package_id).await?;
-        let version = self.pick_version(package_id, requested, versions).await?;
+        let version = ruget_pick_version::pick_version(requested, &versions[..])
+            .ok_or_else(|| ViewError::VersionNotFound(package_id.into(), requested.clone()))?;
         let (index, leaf) = self
             .find_version(client, package_id, requested, &version)
             .await?;
@@ -74,24 +75,6 @@ impl SummaryCmd {
             self.print_package_details(&index, &leaf);
         }
         Ok(())
-    }
-
-    async fn pick_version(
-        &self,
-        id: &str,
-        req: &VersionReq,
-        versions: Vec<Version>,
-    ) -> Result<Version> {
-        let pick = if req.is_floating() {
-            versions.into_iter().rev().find(|v| req.satisfies(v))
-        } else {
-            versions.into_iter().find(|v| req.satisfies(v))
-        };
-        if let Some(pick) = pick {
-            Ok(pick)
-        } else {
-            Err(ViewError::VersionNotFound(id.into(), req.clone()).into())
-        }
     }
 
     async fn find_version(
