@@ -20,6 +20,12 @@ pub struct IconCmd {
     #[clap(about = "Package spec to look up")]
     package: PackageSpec,
     #[clap(
+        about = "Height, in pixels, that the image should be rendered at",
+        long,
+        default_value = "15"
+    )]
+    height: u32,
+    #[clap(
         about = "Source to view packages from",
         default_value = "https://api.nuget.org/v3/index.json",
         long
@@ -73,12 +79,7 @@ impl IconCmd {
             let conf = viuer::Config {
                 transparent: true,
                 absolute_offset: false,
-                // Don't bother growing with the terminal. Just print a
-                // predictable size. viuer stack overflows if images are "too
-                // big". So this should generally stop that.
-                //
-                // Icons aren't meant to be that big anyway
-                width: Some(25),
+                height: Some(self.height),
                 ..Default::default()
             };
             let img =
