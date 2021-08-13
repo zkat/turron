@@ -152,8 +152,12 @@ impl SummaryCmd {
             entry
                 .license_expression
                 .clone()
-                .unwrap_or_else(|| "Proprietary".into())
-                .fg::<Green>(),
+                .and_then(|l| if l.is_empty() {
+                    None
+                } else {
+                    Some(l.fg::<Green>().to_string())
+                })
+                .unwrap_or_else(|| "No License".fg::<Red>().to_string()),
             total_deps.to_string().fg::<Yellow>(),
             total_versions.to_string().fg::<Yellow>(),
         );
