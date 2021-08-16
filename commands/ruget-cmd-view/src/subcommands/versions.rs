@@ -12,7 +12,7 @@ use ruget_command::{
 use ruget_common::{
     chrono::Datelike,
     chrono_humanize::HumanTime,
-    miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{DiagnosticResult as Result, IntoDiagnostic},
     serde_json,
 };
 use ruget_package_spec::PackageSpec;
@@ -22,7 +22,7 @@ use crate::error::ViewError;
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct VersionsCmd {
     #[clap(about = "Package spec to look up")]
-    package: PackageSpec,
+    package: String,
     #[clap(
         about = "Source to view packages from",
         default_value = "https://api.nuget.org/v3/index.json",
@@ -40,8 +40,9 @@ pub struct VersionsCmd {
 #[async_trait]
 impl RuGetCommand for VersionsCmd {
     async fn execute(self) -> Result<()> {
+        let package = self.package.parse()?;
         let client = NuGetClient::from_source(self.source.clone()).await?;
-        let package_id = if let PackageSpec::NuGet { name, .. } = &self.package {
+        let package_id = if let PackageSpec::NuGet { name, .. } = &package {
             name
         } else {
             return Err(ViewError::InvalidPackageSpec.into());

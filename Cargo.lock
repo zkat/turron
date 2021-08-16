@@ -1407,20 +1407,24 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "0.4.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12cee223f727db3382779d10a34370c57215c60bf48c1a9132e1da4fface5268"
+checksum = "5022841ae4424a04441131a02ea2cc5eafeb1b2cf337b1b3281f57c809b8eb32"
 dependencies = [
  "indenter",
+ "miette-derive",
  "thiserror",
 ]
 
 [[package]]
-name = "miette-utils"
-version = "0.1.0"
+name = "miette-derive"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b33d4f2f59c7ad2219e01e5a20abc6bab961a4275c3692e99abb17d04c83278"
 dependencies = [
- "miette",
- "thiserror",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2123,7 +2127,6 @@ dependencies = [
  "chrono",
  "chrono-humanize",
  "miette",
- "miette-utils",
  "quick-xml",
  "semver 1.0.4",
  "serde 1.0.127",

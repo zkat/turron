@@ -3,7 +3,7 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use ruget_common::miette::Diagnostic;
+use ruget_common::miette::{self, Diagnostic};
 use ruget_common::thiserror::{self, Error};
 
 pub use ruget_config_derive::*;
@@ -18,21 +18,15 @@ pub trait RuGetConfigLayer {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 pub enum RuGetConfigError {
     #[error(transparent)]
-    // #[label("config::error")]
+    #[diagnostic(code(config::error))]
     ConfigError(#[from] ConfigError),
 
     #[error(transparent)]
-    // #[label("config::error")]
+    #[diagnostic(code(config::parse_error))]
     ConfigParseError(#[from] Box<dyn std::error::Error + Send + Sync>),
-}
-
-impl Diagnostic for RuGetConfigError {
-    fn code(&self) -> Box<dyn std::fmt::Display> {
-        Box::new(&"config::error")
-    }
 }
 
 pub struct RuGetConfigOptions {

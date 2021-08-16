@@ -10,7 +10,7 @@ use ruget_command::{
     RuGetCommand,
 };
 use ruget_common::{
-    miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{DiagnosticResult as Result, IntoDiagnostic},
     serde_json,
 };
 

@@ -9,7 +9,7 @@ use ruget_command::{
     log,
     ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions},
 };
-use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::miette::{DiagnosticResult as Result, IntoDiagnostic};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_publish::PublishCmd;

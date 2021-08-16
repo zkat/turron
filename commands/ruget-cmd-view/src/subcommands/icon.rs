@@ -8,7 +8,7 @@ use ruget_command::{
 };
 use ruget_common::{
     miette::Diagnostic,
-    miette_utils::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{DiagnosticResult as Result, IntoDiagnostic},
 };
 use ruget_package_spec::PackageSpec;
 use ruget_semver::VersionReq;
@@ -18,7 +18,7 @@ use crate::error::ViewError;
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct IconCmd {
     #[clap(about = "Package spec to look up")]
-    package: PackageSpec,
+    package: String,
     #[clap(
         about = "Height, in pixels, that the image should be rendered at",
         long,
@@ -42,9 +42,9 @@ pub struct IconCmd {
 #[async_trait]
 impl RuGetCommand for IconCmd {
     async fn execute(self) -> Result<()> {
+        let package = self.package.parse()?;
         let client = NuGetClient::from_source(self.source.clone()).await?;
-        let (package_id, requested) = if let PackageSpec::NuGet { name, requested } = &self.package
-        {
+        let (package_id, requested) = if let PackageSpec::NuGet { name, requested } = &package {
             (name, requested.clone().unwrap_or_else(VersionReq::any))
         } else {
             return Err(ViewError::InvalidPackageSpec.into());

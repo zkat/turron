@@ -6,7 +6,7 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::{miette_utils::DiagnosticResult as Result, thiserror::Error};
+use ruget_common::{miette::DiagnosticResult as Result, thiserror::Error};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct UnlistCmd {

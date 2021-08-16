@@ -1,6 +1,6 @@
 use nom::error::{ContextError, ErrorKind, FromExternalError, ParseError};
 use ruget_common::{
-    miette::Diagnostic,
+    miette::{self, Diagnostic},
     thiserror::{self, Error},
 };
 use ruget_semver::SemverError;
@@ -15,12 +15,20 @@ pub struct PackageSpecError {
 }
 
 impl Diagnostic for PackageSpecError {
-    fn code(&self) -> Box<dyn std::fmt::Display> {
-        Box::new(&"ruget::package_spec::no_parse")
+    fn code<'a>(&'a self) -> Box<dyn std::fmt::Display + 'a> {
+        self.kind.code()
     }
 
-    fn help(&self) -> Option<Box<dyn std::fmt::Display>> {
-        Some(Box::new(&"Please fix your spec. Go look up wherever they're documented idk."))
+    fn severity(&self) -> Option<miette::Severity> {
+        self.kind.severity()
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.kind.help()
+    }
+
+    fn snippets(&self) -> Option<Box<dyn Iterator<Item = miette::DiagnosticSnippet>>> {
+        self.kind.snippets()
     }
 }
 
@@ -55,25 +63,42 @@ impl PackageSpecError {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Diagnostic, Error)]
 pub enum SpecErrorKind {
     #[error("Found invalid characters: `{0}`")]
+    #[diagnostic(code(ruget::spec::invalid_chars))]
     InvalidCharacters(String),
+
     #[error("Drive letters on Windows can only be alphabetical. Got `{0}`.")]
+    #[diagnostic(code(ruget::spec::invalid_drive_letter))]
     InvalidDriveLetter(char),
+
     #[error("Invalid git host `{0}`. Only github:, gitlab:, gist:, and bitbucket: are supported in shorthands.")]
+    #[diagnostic(code(ruget::spec::invalid_git_host))]
     InvalidGitHost(String),
+
     #[error(transparent)]
+    #[diagnostic(code(ruget::spec::invalid_semver))]
     SemverParseError(SemverError),
+
     #[error(transparent)]
+    #[diagnostic(code(ruget::spec::invalid_url))]
     UrlParseError(UrlParseError),
+
     #[error(transparent)]
+    #[diagnostic(code(ruget::spec::invalid_git_host))]
     GitHostParseError(Box<PackageSpecError>),
+
     #[error("Failed to parse {0} component of semver string.")]
+    #[diagnostic(code(ruget::spec::invalid_semver_component))]
     Context(&'static str),
+
     #[error("Incomplete input to semver parser.")]
+    #[diagnostic(code(ruget::spec::incomplete_semver))]
     IncompleteInput,
+
     #[error("An unspecified error occurred.")]
+    #[diagnostic(code(ruget::spec::other))]
     Other,
 }
 

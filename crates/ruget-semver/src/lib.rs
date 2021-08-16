@@ -15,7 +15,7 @@ use nom::sequence::{preceded, tuple};
 use nom::{Err, IResult};
 
 use ruget_common::{
-    miette::{Diagnostic, DiagnosticSnippet, SourceSpan},
+    miette::{self, Diagnostic, DiagnosticSnippet, SourceSpan},
     serde::de::{self, Deserialize, Deserializer, Visitor},
     serde::ser::{Serialize, Serializer},
     thiserror::{self, Error},
@@ -31,7 +31,6 @@ const MAX_LENGTH: usize = 256;
 
 #[derive(Debug, Error, Eq, PartialEq)]
 #[error("Error parsing semver string. {kind}")]
-// #[label("semver::no_parse")]
 pub struct SemverError {
     input: String,
     offset: usize,
@@ -69,19 +68,42 @@ impl SemverError {
     }
 }
 
-#[derive(Debug, Error, Eq, PartialEq)]
+#[derive(Debug, Diagnostic, Error, Eq, PartialEq)]
 pub enum SemverErrorKind {
     #[error("Semver string can't be longer than {} characters.", MAX_LENGTH)]
+    #[diagnostic(
+        code(ruget::semver::input_too_long),
+    )]
     MaxLengthError,
+
     #[error("Incomplete input to semver parser.")]
+    #[diagnostic(
+        code(ruget::semver::incomplete_input),
+    )]
     IncompleteInput,
+
     #[error("Failed to parse an integer component of a semver string: {0}")]
+    #[diagnostic(
+        code(ruget::semver::integer_parse_error),
+    )]
     ParseIntError(ParseIntError),
+
     #[error("Integer component of semver string is larger than MAX_SAFE_INTEGER: {0}")]
+    #[diagnostic(
+        code(ruget::semver::integer_too_large),
+    )]
     MaxIntError(u64),
+
     #[error("Failed to parse {0} component of semver string.")]
+    #[diagnostic(
+        code(ruget::semver::component_parse_error),
+    )]
     Context(&'static str),
+
     #[error("An unspecified error occurred.")]
+    #[diagnostic(
+        code(ruget::semver::other),
+    )]
     Other,
 }
 
@@ -93,12 +115,12 @@ struct SemverParseError<I> {
 }
 
 impl Diagnostic for SemverError {
-    fn code(&self) -> Box<dyn fmt::Display> {
-        Box::new(&"ruget::semver::no_parse")
+    fn code<'a>(&'a self) -> Box<dyn fmt::Display + 'a> {
+        self.kind.code()
     }
 
-    fn help(&self) -> Option<Box<dyn fmt::Display>> {
-        None
+    fn help<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+        self.kind.help()
     }
 
     fn snippets(

@@ -8,7 +8,7 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::miette_utils::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::miette::{DiagnosticResult as Result, IntoDiagnostic};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct PublishCmd {

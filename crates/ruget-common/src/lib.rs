@@ -1,7 +1,6 @@
 pub use chrono;
 pub use chrono_humanize;
 pub use miette;
-pub use miette_utils;
 pub use semver;
 pub use serde;
 pub use serde_json;
