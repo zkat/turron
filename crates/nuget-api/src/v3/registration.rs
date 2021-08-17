@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 pub use ruget_common::surf::Body;
 use ruget_common::{
     chrono::{DateTime, Utc},
@@ -33,13 +31,8 @@ impl NuGetClient {
                     .body_string()
                     .await
                     .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
-                Ok(
-                    serde_json::from_str(&body).map_err(|e| NuGetApiError::BadJson {
-                        source: e,
-                        url: url.into(),
-                        json: Arc::new(body),
-                    })?,
-                )
+                Ok(serde_json::from_str(&body)
+                    .map_err(|e| NuGetApiError::from_json_err(e, url.into(), body))?)
             }
             StatusCode::NotFound => Err(RegistrationPageNotFound),
             code => Err(BadResponse(code)),
@@ -75,13 +68,8 @@ impl NuGetClient {
                     .body_string()
                     .await
                     .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
-                Ok(
-                    serde_json::from_str(&body).map_err(|e| NuGetApiError::BadJson {
-                        source: e,
-                        url: url.into(),
-                        json: Arc::new(body),
-                    })?,
-                )
+                Ok(serde_json::from_str(&body)
+                    .map_err(|e| NuGetApiError::from_json_err(e, url.into(), body))?)
             }
             StatusCode::NotFound => Err(PackageNotFound),
             code => Err(BadResponse(code)),

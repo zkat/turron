@@ -1,7 +1,7 @@
-use std::{io, sync::Arc};
+use std::{cmp, io, sync::Arc};
 
 use ruget_common::{
-    miette::{self, Diagnostic},
+    miette::{self, Diagnostic, SourceSpan},
     quick_xml, serde_json, surf,
     thiserror::{self, Error},
 };
@@ -94,6 +94,10 @@ pub enum NuGetApiError {
         source: serde_json::Error,
         url: String,
         json: Arc<String>,
+        #[snippet(json, "bad_json")]
+        snip: SourceSpan,
+        #[highlight(snip, "here")]
+        err_loc: SourceSpan,
     },
 
     /// Got some bad XML we couldn't parse.
@@ -127,52 +131,36 @@ pub enum NuGetApiError {
     ZipError(#[from] zip::result::ZipError),
 }
 
-// impl NuGetApiError {
-//     fn bad_json_snippets(&self) -> Option<Box<dyn Iterator<Item = DiagnosticSnippet>>> {
-//         if let NuGetApiError::BadJson {
-//             source: err,
-//             json,
-//             url,
-//             ..
-//         } = self
-//         {
-//             let mut line = 0usize;
-//             let mut col = 0usize;
-//             let mut offset = 0usize;
-//             let len = json.len();
-//             for char in json.chars() {
-//                 if char == '\n' {
-//                     col = 0;
-//                     line += 1;
-//                 } else {
-//                     col += 1;
-//                 }
-//                 if line + 1 == err.line() && col + 1 == err.column() {
-//                     break;
-//                 }
-//                 offset += char.len_utf8();
-//             }
-//             Some(Box::new(
-//                 vec![DiagnosticSnippet {
-//                     message: None,
-//                     source_name: url.clone(),
-//                     source: json.clone(),
-//                     context: SourceSpan {
-//                         start: (offset - cmp::min(40, offset)).into(),
-//                         end: (offset + cmp::min(40, len - offset) - 1).into(),
-//                     },
-//                     highlights: Some(vec![(
-//                         "here".into(),
-//                         SourceSpan {
-//                             start: offset.into(),
-//                             end: offset.into(),
-//                         },
-//                     )]),
-//                 }]
-//                 .into_iter(),
-//             ))
-//         } else {
-//             None
-//         }
-//     }
-// }
+impl NuGetApiError {
+    pub fn from_json_err(err: serde_json::Error, url: String, json: String) -> Self {
+        let mut line = 0usize;
+        let mut col = 0usize;
+        let mut offset = 0usize;
+        let len = json.len();
+        for char in json.chars() {
+            if char == '\n' {
+                col = 0;
+                line += 1;
+            } else {
+                col += 1;
+            }
+            if line + 1 == err.line() && col + 1 == err.column() {
+                break;
+            }
+            offset += char.len_utf8();
+        }
+        Self::BadJson {
+            source: err,
+            url,
+            json: Arc::new(json),
+            snip: SourceSpan {
+                start: (offset - cmp::min(40, offset)).into(),
+                end: (offset + cmp::min(40, len - offset) - 1).into(),
+            },
+            err_loc: SourceSpan {
+                start: offset.into(),
+                end: offset.into(),
+            },
+        }
+    }
+}

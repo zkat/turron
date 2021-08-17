@@ -45,11 +45,7 @@ impl NuGetClient {
                     .await
                     .map_err(|e| NuGetApiError::SurfError(e, url.clone().into()))?;
                 Ok(serde_json::from_str::<PackageVersions>(&body)
-                    .map_err(|e| NuGetApiError::BadJson {
-                        source: e,
-                        url: url.into(),
-                        json: Arc::new(body),
-                    })?
+                    .map_err(|e| NuGetApiError::from_json_err(e, url.into(), body))?
                     .versions)
             }
             StatusCode::NotFound => Err(PackageNotFound),
