@@ -1851,8 +1851,9 @@ dependencies = [
 
 [[package]]
 name = "quick-xml"
-version = "0.22.0"
-source = "git+https://github.com/tafia/quick-xml#2dbb753ff0d06155d787cf894d0b0d1ce2568361"
+version = "0.23.0-alpha2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "947ad7f1a245214d75d0646388c20c9b80317ed31f1e9b107f6ce0337441fd1e"
 dependencies = [
  "memchr",
  "serde 1.0.127",
