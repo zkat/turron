@@ -94,9 +94,9 @@ pub enum NuGetApiError {
         source: serde_json::Error,
         url: String,
         json: Arc<String>,
-        #[snippet(json, "bad_json")]
+        #[snippet(json)]
         snip: SourceSpan,
-        #[highlight(snip, "here")]
+        #[highlight(snip)]
         err_loc: SourceSpan,
     },
 
@@ -153,14 +153,8 @@ impl NuGetApiError {
             source: err,
             url,
             json: Arc::new(json),
-            snip: SourceSpan {
-                start: (offset - cmp::min(40, offset)).into(),
-                end: (offset + cmp::min(40, len - offset) - 1).into(),
-            },
-            err_loc: SourceSpan {
-                start: offset.into(),
-                end: offset.into(),
-            },
+            snip: (offset - cmp::min(40, offset), cmp::min(40, len - offset)).into(),
+            err_loc: ("here", offset, 0).into(),
         }
     }
 }

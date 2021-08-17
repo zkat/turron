@@ -15,7 +15,7 @@ use nom::sequence::{preceded, tuple};
 use nom::{Err, IResult};
 
 use ruget_common::{
-    miette::{self, Diagnostic, DiagnosticSnippet, SourceSpan},
+    miette::{self, Diagnostic, DiagnosticSnippet},
     serde::de::{self, Deserialize, Deserializer, Visitor},
     serde::ser::{Serialize, Serializer},
     thiserror::{self, Error},
@@ -71,39 +71,27 @@ impl SemverError {
 #[derive(Debug, Diagnostic, Error, Eq, PartialEq)]
 pub enum SemverErrorKind {
     #[error("Semver string can't be longer than {} characters.", MAX_LENGTH)]
-    #[diagnostic(
-        code(ruget::semver::input_too_long),
-    )]
+    #[diagnostic(code(ruget::semver::input_too_long))]
     MaxLengthError,
 
     #[error("Incomplete input to semver parser.")]
-    #[diagnostic(
-        code(ruget::semver::incomplete_input),
-    )]
+    #[diagnostic(code(ruget::semver::incomplete_input))]
     IncompleteInput,
 
     #[error("Failed to parse an integer component of a semver string: {0}")]
-    #[diagnostic(
-        code(ruget::semver::integer_parse_error),
-    )]
+    #[diagnostic(code(ruget::semver::integer_parse_error))]
     ParseIntError(ParseIntError),
 
     #[error("Integer component of semver string is larger than MAX_SAFE_INTEGER: {0}")]
-    #[diagnostic(
-        code(ruget::semver::integer_too_large),
-    )]
+    #[diagnostic(code(ruget::semver::integer_too_large))]
     MaxIntError(u64),
 
     #[error("Failed to parse {0} component of semver string.")]
-    #[diagnostic(
-        code(ruget::semver::component_parse_error),
-    )]
+    #[diagnostic(code(ruget::semver::component_parse_error))]
     Context(&'static str),
 
     #[error("An unspecified error occurred.")]
-    #[diagnostic(
-        code(ruget::semver::other),
-    )]
+    #[diagnostic(code(ruget::semver::other))]
     Other,
 }
 
@@ -128,20 +116,10 @@ impl Diagnostic for SemverError {
     ) -> Option<Box<dyn Iterator<Item = ruget_common::miette::DiagnosticSnippet>>> {
         let snippet = DiagnosticSnippet {
             message: None, // TODO
-            source_name: "semver input".into(),
             source: Arc::new(self.input.clone()),
-            context: SourceSpan {
-                // TODO: Don't display the entire thing if it might be too long.
-                start: 0.into(),
-                end: (self.input.len() - 1).into(),
-            },
-            highlights: Some(vec![(
-                "idk".into(), // TODO
-                SourceSpan {
-                    start: self.offset.into(),
-                    end: (self.offset + 1).into(),
-                },
-            )]),
+            // TODO: Don't display the entire thing if it might be too long.
+            context: (0, self.input.len()).into(),
+            highlights: Some(vec![("idk", self.offset, 1).into()]),
         };
         Some(Box::new(vec![snippet].into_iter()))
     }
