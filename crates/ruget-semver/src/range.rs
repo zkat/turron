@@ -3,7 +3,7 @@ use std::fmt;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::{space0, space1};
+use nom::character::complete::space0;
 use nom::combinator::{all_consuming, cut, map, map_opt, opt};
 use nom::error::context;
 use nom::multi::separated_list1;
@@ -66,21 +66,6 @@ impl ComparatorSet {
         };
 
         lower_bound || upper_bound
-    }
-
-    fn at_least(p: Predicate) -> Option<Self> {
-        ComparatorSet::new(Bound::Lower(p), Bound::upper())
-    }
-
-    fn at_most(p: Predicate) -> Option<Self> {
-        ComparatorSet::new(Bound::lower(), Bound::Upper(p))
-    }
-
-    fn exact(version: Version) -> Option<Self> {
-        ComparatorSet::new(
-            Bound::Lower(Predicate::Including(version.clone())),
-            Bound::Upper(Predicate::Including(version)),
-        )
     }
 
     fn satisfies(&self, version: &Version) -> bool {
@@ -186,19 +171,10 @@ impl fmt::Display for ComparatorSet {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-enum Operation {
-    Exact,
-    GreaterThan,
-    GreaterThanEquals,
-    LessThan,
-    LessThanEquals,
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Predicate {
-    Excluding(Version), // < and >
-    Including(Version), // <= and >=
+    Excluding(Version), // ( and )
+    Including(Version), // [ and ]
     Unbounded,          // *
 }
 
@@ -304,19 +280,6 @@ impl PartialOrd for Bound {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Range {
     comparators: Vec<ComparatorSet>,
-}
-
-impl fmt::Display for Operation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Operation::*;
-        match self {
-            Exact => write!(f, ""),
-            GreaterThan => write!(f, ">"),
-            GreaterThanEquals => write!(f, ">="),
-            LessThan => write!(f, "<"),
-            LessThanEquals => write!(f, "<="),
-        }
-    }
 }
 
 impl Range {
@@ -488,8 +451,6 @@ fn comparators(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&st
     alt((
         // [1.2.3, 3.2.1)
         brackets_range,
-        // > 1.0 || <1.2.* || =1.2.3 || =1.2.* (lol)
-        any_operation_followed_by_version,
         // 1.0 || 1.* || 1 || *
         plain_version_range,
     ))(input)
@@ -630,197 +591,6 @@ fn partial_version(input: &str) -> IResult<&str, PartialVersion, SemverParseErro
 
 fn maybe_dot_number(input: &str) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
     opt(preceded(tag("."), alt((number, map(tag("*"), |_| 0)))))(input)
-}
-
-fn any_operation_followed_by_version(
-    input: &str,
-) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
-    use Operation::*;
-    context(
-        "operation followed by version",
-        map_opt(
-            tuple((operation, preceded(space0, partial_version))),
-            |parsed| match parsed {
-                (GreaterThanEquals, (major, minor, patch, revision, pre_release, build)) => {
-                    ComparatorSet::at_least(Predicate::Including(Version {
-                        major: major.unwrap_or(0),
-                        minor: minor.unwrap_or(0),
-                        patch: patch.unwrap_or(0),
-                        revision: revision.unwrap_or(0),
-                        pre_release,
-                        build,
-                    }))
-                }
-                (
-                    GreaterThan,
-                    (major, Some(minor), Some(patch), Some(revision), pre_release, build),
-                ) => ComparatorSet::at_least(Predicate::Excluding(Version {
-                    major: major.unwrap_or(0),
-                    minor,
-                    patch,
-                    revision,
-                    pre_release,
-                    build,
-                })),
-                (GreaterThan, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    ComparatorSet::at_least(Predicate::Excluding(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    }))
-                }
-                (GreaterThan, (major, Some(minor), None, None, pre_release, build)) => {
-                    ComparatorSet::at_least(Predicate::Including(Version {
-                        major: major.unwrap_or(0),
-                        minor: minor + 1,
-                        patch: 0,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    }))
-                }
-                (GreaterThan, (major, None, None, None, pre_release, build)) => {
-                    ComparatorSet::at_least(Predicate::Including(Version {
-                        major: major.map(|x| x + 1).unwrap_or(0),
-                        minor: 0,
-                        patch: 0,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    }))
-                }
-                (LessThan, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    ComparatorSet::at_most(Predicate::Excluding(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    }))
-                }
-                (LessThan, (major, Some(minor), None, None, _, build)) => {
-                    ComparatorSet::at_most(Predicate::Excluding(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch: 0,
-                        revision: 0,
-                        pre_release: vec![Identifier::Numeric(0)],
-                        build,
-                    }))
-                }
-                (LessThan, (major, minor, patch, revision, pre_release, build)) => {
-                    ComparatorSet::at_most(Predicate::Excluding(Version {
-                        major: major.unwrap_or(0),
-                        minor: minor.unwrap_or(0),
-                        patch: patch.unwrap_or(0),
-                        revision: revision.unwrap_or(0),
-                        pre_release,
-                        build,
-                    }))
-                }
-                (LessThanEquals, (major, None, None, None, _, build)) => {
-                    ComparatorSet::at_most(Predicate::Including(Version {
-                        major: major.unwrap_or(0),
-                        minor: 0,
-                        patch: 0,
-                        revision: 0,
-                        pre_release: vec![Identifier::Numeric(0)],
-                        build,
-                    }))
-                }
-                (LessThanEquals, (major, Some(minor), None, None, _, build)) => {
-                    ComparatorSet::at_most(Predicate::Including(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch: 0,
-                        revision: 0,
-                        pre_release: vec![Identifier::Numeric(0)],
-                        build,
-                    }))
-                }
-                (LessThanEquals, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    ComparatorSet::at_most(Predicate::Including(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    }))
-                }
-                (
-                    LessThanEquals,
-                    (major, Some(minor), Some(patch), Some(revision), pre_release, build),
-                ) => ComparatorSet::at_most(Predicate::Including(Version {
-                    major: major.unwrap_or(0),
-                    minor,
-                    patch,
-                    revision,
-                    pre_release,
-                    build,
-                })),
-                (Exact, (major, None, None, None, pre_release, build)) => {
-                    ComparatorSet::exact(Version {
-                        major: major.unwrap_or(0),
-                        minor: 0,
-                        patch: 0,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    })
-                }
-                (Exact, (major, Some(minor), None, None, pre_release, build)) => {
-                    ComparatorSet::exact(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch: 0,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    })
-                }
-                (Exact, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    ComparatorSet::exact(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch,
-                        revision: 0,
-                        pre_release,
-                        build,
-                    })
-                }
-                (Exact, (major, Some(minor), Some(patch), Some(revision), pre_release, build)) => {
-                    ComparatorSet::exact(Version {
-                        major: major.unwrap_or(0),
-                        minor,
-                        patch,
-                        revision,
-                        pre_release,
-                        build,
-                    })
-                }
-                _ => unreachable!("Odd parsed version: {:?}", parsed),
-            },
-        ),
-    )(input)
-}
-
-fn operation(input: &str) -> IResult<&str, Operation, SemverParseError<&str>> {
-    use Operation::*;
-    context(
-        "operation",
-        alt((
-            map(tag(">="), |_| GreaterThanEquals),
-            map(tag(">"), |_| GreaterThan),
-            map(tag("="), |_| Exact),
-            map(tag("<="), |_| LessThanEquals),
-            map(tag("<"), |_| LessThan),
-        )),
-    )(input)
 }
 
 impl fmt::Display for Range {
