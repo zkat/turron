@@ -12,9 +12,7 @@ use crate::parsers::util;
 use crate::{GitHost, GitInfo, PackageSpec};
 
 /// `git-spec := git-shorthand | git-scp | git-url`
-pub(crate) fn git_spec(
-    input: &str,
-) -> IResult<&str, PackageSpec, SpecParseError<&str>> {
+pub(crate) fn git_spec(input: &str) -> IResult<&str, PackageSpec, SpecParseError<&str>> {
     context(
         "git package",
         map(alt((git_shorthand, git_url, git_scp)), PackageSpec::Git),

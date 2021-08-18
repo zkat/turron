@@ -145,7 +145,7 @@ impl NuGetApiError {
                 cmp::min(40, len - err_offset.offset()),
             )
                 .into(),
-            err_loc: ("here", err_offset, 0.into()).into(),
+            err_loc: ("here", err_offset, 1.into()).into(),
         }
     }
 }

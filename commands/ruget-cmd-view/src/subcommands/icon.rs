@@ -6,10 +6,7 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::{
-    miette::Diagnostic,
-    miette::{DiagnosticResult as Result, IntoDiagnostic},
-};
+use ruget_common::miette::{DiagnosticReport, DiagnosticResult as Result, IntoDiagnostic};
 use ruget_package_spec::PackageSpec;
 use ruget_semver::VersionReq;
 
@@ -69,12 +66,12 @@ impl IconCmd {
             let data = client
                 .get_from_nupkg(package_id, &version, &icon)
                 .await
-                .map_err(|err| -> Box<dyn Diagnostic + Send + Sync> {
+                .map_err(|err| -> DiagnosticReport {
                     match err {
                         NuGetApiError::FileNotFound(_, _, _) => {
-                            Box::new(ViewError::IconNotFound(nuspec.metadata.id, version))
+                            ViewError::IconNotFound(nuspec.metadata.id, version).into()
                         }
-                        _ => Box::new(err),
+                        _ => err.into(),
                     }
                 })?;
             let conf = viuer::Config {

@@ -104,10 +104,7 @@ impl SummaryCmd {
                 }
             }
         }
-        Err(Box::new(ViewError::VersionNotFound(
-            package_id.into(),
-            req.clone(),
-        )))
+        Err(ViewError::VersionNotFound(package_id.into(), req.clone()).into())
     }
 
     fn print_package_details(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {

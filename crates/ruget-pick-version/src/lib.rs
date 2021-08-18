@@ -1,6 +1,6 @@
 use ruget_semver::{Version, VersionReq};
 
-pub fn pick_version(req: &VersionReq,versions: &[Version]) -> Option<Version> {
+pub fn pick_version(req: &VersionReq, versions: &[Version]) -> Option<Version> {
     VersionPicker::default().pick_version(req, versions)
 }
 
@@ -28,9 +28,7 @@ impl VersionPicker {
         if floating {
             versions.reverse();
         }
-        versions.into_iter().find(|v| {
-            req.satisfies(v)
-        })
+        versions.into_iter().find(|v| req.satisfies(v))
     }
 }
 

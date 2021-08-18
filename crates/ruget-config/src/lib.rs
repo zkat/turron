@@ -3,7 +3,7 @@ use std::path::PathBuf;
 pub use clap::ArgMatches;
 pub use config::Config as RuGetConfig;
 use config::{ConfigError, Environment, File};
-use ruget_common::miette::{self, Diagnostic};
+use ruget_common::miette::{self, Diagnostic, DiagnosticResult};
 use ruget_common::thiserror::{self, Error};
 
 pub use ruget_config_derive::*;
@@ -13,7 +13,7 @@ pub trait RuGetConfigLayer {
         &mut self,
         _matches: &ArgMatches,
         _config: &RuGetConfig,
-    ) -> Result<(), Box<dyn Diagnostic + Send + Sync + 'static>> {
+    ) -> DiagnosticResult<()> {
         Ok(())
     }
 }

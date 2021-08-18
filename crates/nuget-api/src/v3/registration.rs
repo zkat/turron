@@ -107,6 +107,7 @@ pub struct RegistrationLeaf {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogEntry {
+    foo: String,
     pub id: String,
     pub version: Version,
     #[serde(skip_serializing_if = "Option::is_none")]
