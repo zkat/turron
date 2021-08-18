@@ -16,7 +16,6 @@ use crate::{extras, number, Identifier, SemverError, SemverErrorKind, SemverPars
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 struct ComparatorSet {
-    floating: bool,
     upper: Bound,
     lower: Bound,
 }
@@ -34,22 +33,12 @@ impl ComparatorSet {
                 None
             }
             (Lower(Including(v1)), Upper(Including(v2))) if v1 == v2 => Some(Self {
-                floating: true,
                 lower: Lower(Including(v1)),
                 upper: Upper(Including(v2)),
             }),
-            (lower, upper) if lower <= upper => Some(Self {
-                floating: true,
-                lower,
-                upper,
-            }),
+            (lower, upper) if lower <= upper => Some(Self { lower, upper }),
             _ => None,
         }
-    }
-
-    fn floating(mut self, floating: bool) -> Self {
-        self.floating = floating;
-        self
     }
 
     fn has_pre(&self) -> bool {
@@ -142,7 +131,6 @@ impl ComparatorSet {
         let upper = std::cmp::min(&self.upper, &other.upper);
 
         ComparatorSet::new(lower.clone(), upper.clone())
-            .map(|r| r.floating(self.floating || other.floating))
     }
 
     fn difference(&self, other: &Self) -> Option<Vec<Self>> {
@@ -156,22 +144,21 @@ impl ComparatorSet {
             if self.lower < overlap.lower && overlap.upper < self.upper {
                 return Some(vec![
                     ComparatorSet::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
-                        .map(|r| r.floating(self.floating || other.floating))
                         .unwrap(),
                     ComparatorSet::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
-                        .map(|r| r.floating(self.floating || other.floating))
                         .unwrap(),
                 ]);
             }
 
             if self.lower < overlap.lower {
-                return ComparatorSet::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
-                    .map(|r| r.floating(self.floating || other.floating))
-                    .map(|f| vec![f]);
+                return ComparatorSet::new(
+                    self.lower.clone(),
+                    Upper(overlap.lower.predicate().flip()),
+                )
+                .map(|f| vec![f]);
             }
 
             ComparatorSet::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
-                .map(|r| r.floating(self.floating || other.floating))
                 .map(|f| vec![f])
         } else {
             Some(vec![self.clone()])
@@ -183,34 +170,18 @@ impl fmt::Display for ComparatorSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Bound::*;
         use Predicate::*;
-        if self.floating {
-            match (&self.lower, &self.upper) {
-                (Lower(Unbounded), Upper(Unbounded)) => write!(f, "*"),
-                (Lower(Unbounded), Upper(Including(v))) => write!(f, "<={}", v),
-                (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "<{}", v),
-                (Lower(Including(v)), Upper(Unbounded)) => write!(f, ">={}", v),
-                (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, ">{}", v),
-                (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "={}", v),
-                (Lower(Including(v)), Upper(Including(v2))) => write!(f, ">={} <={}", v, v2),
-                (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, ">={} <{}", v, v2),
-                (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, ">{} <={}", v, v2),
-                (Lower(Excluding(v)), Upper(Excluding(v2))) => write!(f, ">{} <{}", v, v2),
-                _ => unreachable!("does not make sense"),
-            }
-        } else {
-            match (&self.lower, &self.upper) {
-                (Lower(Unbounded), Upper(Unbounded)) => write!(f, "*"),
-                (Lower(Unbounded), Upper(Including(v))) => write!(f, "(,{}]", v),
-                (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "(,{})", v),
-                (Lower(Including(v)), Upper(Unbounded)) => write!(f, "[{},)", v),
-                (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, "({},)", v),
-                (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "[{}]", v),
-                (Lower(Including(v)), Upper(Including(v2))) => write!(f, "[{},{}]", v, v2),
-                (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, "[{},{})", v, v2),
-                (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, "({},{}]", v, v2),
-                (Lower(Excluding(v)), Upper(Excluding(v2))) => write!(f, "({},{})", v, v2),
-                _ => unreachable!("does not make sense"),
-            }
+        match (&self.lower, &self.upper) {
+            (Lower(Unbounded), Upper(Unbounded)) => write!(f, "*"),
+            (Lower(Unbounded), Upper(Including(v))) => write!(f, "<={}", v),
+            (Lower(Unbounded), Upper(Excluding(v))) => write!(f, "<{}", v),
+            (Lower(Including(v)), Upper(Unbounded)) => write!(f, ">={}", v),
+            (Lower(Excluding(v)), Upper(Unbounded)) => write!(f, ">{}", v),
+            (Lower(Including(v)), Upper(Including(v2))) if v == v2 => write!(f, "={}", v),
+            (Lower(Including(v)), Upper(Including(v2))) => write!(f, ">={} <={}", v, v2),
+            (Lower(Including(v)), Upper(Excluding(v2))) => write!(f, ">={} <{}", v, v2),
+            (Lower(Excluding(v)), Upper(Including(v2))) => write!(f, ">{} <={}", v, v2),
+            (Lower(Excluding(v)), Upper(Excluding(v2))) => write!(f, ">{} <{}", v, v2),
+            _ => unreachable!("does not make sense"),
         }
     }
 }
@@ -381,10 +352,6 @@ impl Range {
         }
     }
 
-    pub fn is_floating(&self) -> bool {
-        self.predicates.iter().any(|pred| pred.floating)
-    }
-
     pub fn has_pre_release(&self) -> bool {
         self.predicates.iter().any(|pred| pred.has_pre())
     }
@@ -544,7 +511,6 @@ fn plain_version_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseE
                     })),
                     Bound::upper(),
                 )
-                .map(|r| r.floating(false))
             },
         ),
     )(input)
@@ -616,7 +582,7 @@ fn brackets_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<
                 } else {
                     return None;
                 };
-                ComparatorSet::new(lower_bound, upper_bound).map(|x| x.floating(false))
+                ComparatorSet::new(lower_bound, upper_bound)
             },
         ),
     )(input)
@@ -671,7 +637,9 @@ fn maybe_dot_number(input: &str) -> IResult<&str, Option<u64>, SemverParseError<
     opt(preceded(tag("."), number))(input)
 }
 
-fn any_operation_followed_by_version(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
+fn any_operation_followed_by_version(
+    input: &str,
+) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     use Operation::*;
     context(
         "operation followed by version",
@@ -800,14 +768,16 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, ComparatorSet
                     pre_release,
                     build,
                 })),
-                (Exact, (major, None, None, None, pre_release, build)) => ComparatorSet::exact(Version {
-                    major,
-                    minor: 0,
-                    patch: 0,
-                    revision: 0,
-                    pre_release,
-                    build,
-                }),
+                (Exact, (major, None, None, None, pre_release, build)) => {
+                    ComparatorSet::exact(Version {
+                        major,
+                        minor: 0,
+                        patch: 0,
+                        revision: 0,
+                        pre_release,
+                        build,
+                    })
+                }
                 (Exact, (major, Some(minor), None, None, pre_release, build)) => {
                     ComparatorSet::exact(Version {
                         major,
@@ -863,7 +833,6 @@ fn x_and_asterisk_version(input: &str) -> IResult<&str, ComparatorSet, SemverPar
             )),
             |(major, maybe_minor)| {
                 ComparatorSet::new(lower_bound(major, maybe_minor), Bound::upper())
-                    .map(|x| x.floating(false))
             },
         ),
     )(input)
@@ -958,10 +927,12 @@ fn tilde(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
                 Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
                 Bound::Upper(Predicate::Excluding((major, minor, 0, 0, 0).into())),
             ),
-            (Some(_), (major, Some(minor), Some(patch), Some(revision), _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
-                Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
-            ),
+            (Some(_), (major, Some(minor), Some(patch), Some(revision), _, _)) => {
+                ComparatorSet::new(
+                    Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
+                    Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
+                )
+            }
             (None, (major, Some(minor), Some(patch), Some(revision), _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
                 Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
@@ -1687,9 +1658,10 @@ mod tests {
     fn serialize_a_versionreq_to_string() {
         let output = serde_json::to_string(&WithVersionReq {
             req: Range {
-                predicates: vec![
-                    ComparatorSet::at_most(Predicate::Excluding("1.2.3".parse().unwrap())).unwrap(),
-                ],
+                predicates: vec![ComparatorSet::at_most(Predicate::Excluding(
+                    "1.2.3".parse().unwrap(),
+                ))
+                .unwrap()],
             },
         })
         .unwrap();

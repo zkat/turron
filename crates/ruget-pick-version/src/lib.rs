@@ -1,4 +1,4 @@
-use ruget_semver::{Version, Range};
+use ruget_semver::{Range, Version};
 
 pub fn pick_version(req: &Range, versions: &[Version]) -> Option<Version> {
     VersionPicker::default().pick_version(req, versions)
@@ -6,16 +6,18 @@ pub fn pick_version(req: &Range, versions: &[Version]) -> Option<Version> {
 
 #[derive(Debug, Clone, Default)]
 pub struct VersionPicker {
-    pub force_floating: bool,
+    minimal: bool,
 }
 
 impl VersionPicker {
-    pub fn new(force_floating: bool) -> Self {
-        Self { force_floating }
+    pub fn new() -> Self {
+        Default::default()
+    }
+    pub fn new_minimal() -> Self {
+        Self { minimal: true }
     }
 
     pub fn pick_version(&self, req: &Range, versions: &[Version]) -> Option<Version> {
-        let floating = self.force_floating || req.is_floating();
         let include_pre = req.has_pre_release();
         let mut versions = versions
             .iter()
@@ -25,7 +27,7 @@ impl VersionPicker {
             .collect::<Vec<_>>();
         versions.sort_unstable();
 
-        if floating {
+        if !self.minimal {
             versions.reverse();
         }
         versions.into_iter().find(|v| req.satisfies(v))
