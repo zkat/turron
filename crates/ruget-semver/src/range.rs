@@ -303,7 +303,7 @@ impl PartialOrd for Bound {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Range {
-    predicates: Vec<ComparatorSet>,
+    comparators: Vec<ComparatorSet>,
 }
 
 impl fmt::Display for Operation {
@@ -323,8 +323,10 @@ impl Range {
     pub fn parse<S: AsRef<str>>(input: S) -> Result<Self, SemverError> {
         let input = input.as_ref();
 
-        match all_consuming(many_predicates)(input) {
-            Ok((_, predicates)) => Ok(Range { predicates }),
+        match all_consuming(range)(input) {
+            Ok((_, predicates)) => Ok(Range {
+                comparators: predicates,
+            }),
             Err(err) => Err(match err {
                 Err::Error(e) | Err::Failure(e) => SemverError {
                     input: input.into(),
@@ -348,16 +350,16 @@ impl Range {
 
     pub fn any() -> Self {
         Self {
-            predicates: vec![ComparatorSet::new(Bound::lower(), Bound::upper()).unwrap()],
+            comparators: vec![ComparatorSet::new(Bound::lower(), Bound::upper()).unwrap()],
         }
     }
 
     pub fn has_pre_release(&self) -> bool {
-        self.predicates.iter().any(|pred| pred.has_pre())
+        self.comparators.iter().any(|pred| pred.has_pre())
     }
 
     pub fn satisfies(&self, version: &Version) -> bool {
-        for range in &self.predicates {
+        for range in &self.comparators {
             if range.satisfies(version) {
                 return true;
             }
@@ -367,8 +369,8 @@ impl Range {
     }
 
     pub fn allows_all(&self, other: &Range) -> bool {
-        for this in &self.predicates {
-            for that in &other.predicates {
+        for this in &self.comparators {
+            for that in &other.comparators {
                 if this.allows_all(that) {
                     return true;
                 }
@@ -379,8 +381,8 @@ impl Range {
     }
 
     pub fn allows_any(&self, other: &Range) -> bool {
-        for this in &self.predicates {
-            for that in &other.predicates {
+        for this in &self.comparators {
+            for that in &other.comparators {
                 if this.allows_any(that) {
                     return true;
                 }
@@ -393,8 +395,8 @@ impl Range {
     pub fn intersect(&self, other: &Self) -> Option<Self> {
         let mut predicates = Vec::new();
 
-        for lefty in &self.predicates {
-            for righty in &other.predicates {
+        for lefty in &self.comparators {
+            for righty in &other.comparators {
                 if let Some(range) = lefty.intersect(righty) {
                     predicates.push(range)
                 }
@@ -404,15 +406,17 @@ impl Range {
         if predicates.is_empty() {
             None
         } else {
-            Some(Self { predicates })
+            Some(Self {
+                comparators: predicates,
+            })
         }
     }
 
     pub fn difference(&self, other: &Self) -> Option<Self> {
         let mut predicates = Vec::new();
 
-        for lefty in &self.predicates {
-            for righty in &other.predicates {
+        for lefty in &self.comparators {
+            for righty in &other.comparators {
                 if let Some(mut range) = lefty.difference(righty) {
                     predicates.append(&mut range)
                 }
@@ -422,7 +426,9 @@ impl Range {
         if predicates.is_empty() {
             None
         } else {
-            Some(Self { predicates })
+            Some(Self {
+                comparators: predicates,
+            })
         }
     }
 }
