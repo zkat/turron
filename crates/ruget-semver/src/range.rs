@@ -487,8 +487,6 @@ fn predicates(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str
             x_and_asterisk_version,
             plain_version_range,
             any_operation_followed_by_version,
-            caret,
-            tilde,
             wildcard,
         )),
     )(input)
@@ -851,108 +849,6 @@ fn lower_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
 //         Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into()))
 //     }
 // }
-
-fn caret(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
-    context(
-        "caret",
-        map_opt(
-            preceded(tuple((tag("^"), space0)), partial_version),
-            |parsed| match parsed {
-                (0, None, None, None, _, _) => {
-                    ComparatorSet::at_most(Predicate::Excluding((1, 0, 0, 0, 0).into()))
-                }
-                (0, Some(minor), None, None, _, _) => ComparatorSet::new(
-                    Bound::Lower(Predicate::Including((0, minor, 0, 0).into())),
-                    Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0, 0).into())),
-                ),
-                // (0, Some(minor), Some(patch), None, _, _) => Range::new(
-                //     Bound::Lower(Predicate::Including((0, minor, patch, 0).into())),
-                //     Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0, 0).into())),
-                // ),
-                (major, None, None, None, _, _) => ComparatorSet::new(
-                    Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
-                    Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
-                ),
-                (major, Some(minor), None, None, _, _) => ComparatorSet::new(
-                    Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
-                    Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
-                ),
-                (major, Some(minor), Some(patch), revision, pre_release, _) => {
-                    let revision = revision.unwrap_or(0);
-                    ComparatorSet::new(
-                        Bound::Lower(Predicate::Including(Version {
-                            major,
-                            minor,
-                            patch,
-                            revision,
-                            pre_release,
-                            build: vec![],
-                        })),
-                        Bound::Upper(Predicate::Excluding(
-                            match (major, minor, patch, revision) {
-                                (0, 0, 0, n) => Version::from((0, 0, 0, n + 1, 0)),
-                                (0, 0, n, _) => Version::from((0, 0, n + 1, 0, 0)),
-                                (0, n, _, _) => Version::from((0, n + 1, 0, 0, 0)),
-                                (n, _, _, _) => Version::from((n + 1, 0, 0, 0, 0)),
-                            },
-                        )),
-                    )
-                }
-                _ => unreachable!(),
-            },
-        ),
-    )(input)
-}
-
-fn tilde_gt(input: &str) -> IResult<&str, Option<&str>, SemverParseError<&str>> {
-    map(
-        tuple((tag("~"), space0, opt(tag(">")), space0)),
-        |(_, _, gt, _)| gt,
-    )(input)
-}
-
-fn tilde(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
-    context(
-        "tilde",
-        map_opt(tuple((tilde_gt, partial_version)), |parsed| match parsed {
-            (Some(_), (major, None, None, None, _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
-                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
-            ),
-            (Some(_), (major, Some(minor), None, None, _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
-                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
-            ),
-            (Some(_), (major, Some(minor), Some(patch), None, _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
-                Bound::Upper(Predicate::Excluding((major, minor, 0, 0, 0).into())),
-            ),
-            (Some(_), (major, Some(minor), Some(patch), Some(revision), _, _)) => {
-                ComparatorSet::new(
-                    Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
-                    Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
-                )
-            }
-            (None, (major, Some(minor), Some(patch), Some(revision), _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
-                Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
-            ),
-            (None, (major, Some(minor), Some(patch), None, _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
-                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into())),
-            ),
-            (None, (major, Some(minor), None, None, _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
-                Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into())),
-            ),
-            (None, (major, None, None, None, _, _)) => ComparatorSet::new(
-                Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
-                Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
-            ),
-            _ => unreachable!("Should not have gotten here"),
-        }),
-    )(input)
-}
 
 fn hyphenated<'a, F, G, S, T>(
     left: F,
