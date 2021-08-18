@@ -1,7 +1,6 @@
 use std::cmp::{self, Ordering};
 use std::fmt;
 use std::num::ParseIntError;
-use std::sync::Arc;
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
@@ -113,15 +112,17 @@ impl Diagnostic for SemverError {
 
     fn snippets(
         &self,
-    ) -> Option<Box<dyn Iterator<Item = ruget_common::miette::DiagnosticSnippet>>> {
-        let snippet = DiagnosticSnippet {
-            message: None, // TODO
-            source: Arc::new(self.input.clone()),
-            // TODO: Don't display the entire thing if it might be too long.
-            context: (0, self.input.len()).into(),
-            highlights: Some(vec![("idk", self.offset, 1).into()]),
-        };
-        Some(Box::new(vec![snippet].into_iter()))
+    ) -> Option<Box<dyn Iterator<Item = ruget_common::miette::DiagnosticSnippet> + '_>> {
+        Some(Box::new(
+            vec![DiagnosticSnippet {
+                message: None, // TODO
+                source: &self.input,
+                // TODO: Don't display the entire thing if it might be too long.
+                context: (0, self.input.len()).into(),
+                highlights: Some(vec![("idk", self.offset, 1).into()]),
+            }]
+            .into_iter(),
+        ))
     }
 }
 

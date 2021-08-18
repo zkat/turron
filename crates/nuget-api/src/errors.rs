@@ -1,7 +1,7 @@
 use std::{cmp, io, sync::Arc};
 
 use ruget_common::{
-    miette::{self, Diagnostic, SourceSpan},
+    miette::{self, Diagnostic, SourceOffset, SourceSpan},
     quick_xml, serde_json, surf,
     thiserror::{self, Error},
 };
@@ -93,7 +93,7 @@ pub enum NuGetApiError {
     BadJson {
         source: serde_json::Error,
         url: String,
-        json: Arc<String>,
+        json: String,
         #[snippet(json)]
         snip: SourceSpan,
         #[highlight(snip)]
@@ -133,28 +133,19 @@ pub enum NuGetApiError {
 
 impl NuGetApiError {
     pub fn from_json_err(err: serde_json::Error, url: String, json: String) -> Self {
-        let mut line = 0usize;
-        let mut col = 0usize;
-        let mut offset = 0usize;
+        // The offset of the error itself
+        let err_offset = SourceOffset::from_location(&json, err.line(), err.column());
         let len = json.len();
-        for char in json.chars() {
-            if char == '\n' {
-                col = 0;
-                line += 1;
-            } else {
-                col += 1;
-            }
-            if line + 1 == err.line() && col + 1 == err.column() {
-                break;
-            }
-            offset += char.len_utf8();
-        }
         Self::BadJson {
             source: err,
             url,
-            json: Arc::new(json),
-            snip: (offset - cmp::min(40, offset), cmp::min(40, len - offset)).into(),
-            err_loc: ("here", offset, 0).into(),
+            json,
+            snip: (
+                err_offset.offset() - cmp::min(40, err_offset.offset()),
+                cmp::min(40, len - err_offset.offset()),
+            )
+                .into(),
+            err_loc: ("here", err_offset, 0.into()).into(),
         }
     }
 }

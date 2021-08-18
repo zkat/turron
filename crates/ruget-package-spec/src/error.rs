@@ -27,7 +27,7 @@ impl Diagnostic for PackageSpecError {
         self.kind.help()
     }
 
-    fn snippets(&self) -> Option<Box<dyn Iterator<Item = miette::DiagnosticSnippet>>> {
+    fn snippets(&self) -> Option<Box<dyn Iterator<Item = miette::DiagnosticSnippet> + '_>> {
         self.kind.snippets()
     }
 }
