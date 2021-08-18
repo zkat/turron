@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use ruget_semver::VersionReq as Range;
+use ruget_semver::Range as Range;
 use url::Url;
 
 use crate::error::{PackageSpecError, SpecErrorKind};

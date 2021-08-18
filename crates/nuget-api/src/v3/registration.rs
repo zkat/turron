@@ -5,7 +5,7 @@ use ruget_common::{
     serde_json,
     surf::{self, StatusCode, Url},
 };
-use ruget_semver::{Version, VersionReq};
+use ruget_semver::{Version, Range};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
@@ -169,7 +169,7 @@ pub struct DependencyGroup {
 pub struct Dependency {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub range: Option<VersionReq>, // TODO: what type is this, actually?...
+    pub range: Option<Range>, // TODO: what type is this, actually?...
 }
 
 impl PartialOrd for Dependency {

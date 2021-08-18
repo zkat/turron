@@ -4,7 +4,7 @@ use nom::combinator::{cut, map, map_res, opt, peek, rest};
 use nom::error::context;
 use nom::sequence::{preceded, terminated};
 use nom::IResult;
-use ruget_semver::VersionReq;
+use ruget_semver::Range;
 use url::Url;
 
 use crate::error::SpecParseError;
@@ -51,7 +51,7 @@ fn hosted_git_prefix(input: &str) -> IResult<&str, GitHost, SpecParseError<&str>
 
 fn committish(
     input: &str,
-) -> IResult<&str, (Option<String>, Option<VersionReq>), SpecParseError<&str>> {
+) -> IResult<&str, (Option<String>, Option<Range>), SpecParseError<&str>> {
     let (input, hash) = opt(preceded(
         tag("#"),
         alt((
@@ -71,8 +71,8 @@ fn committish(
     ))
 }
 
-fn semver_range(input: &str) -> IResult<&str, VersionReq, SpecParseError<&str>> {
-    let (input, range) = map_res(take_till1(|_| false), VersionReq::parse)(input)?;
+fn semver_range(input: &str) -> IResult<&str, Range, SpecParseError<&str>> {
+    let (input, range) = map_res(take_till1(|_| false), Range::parse)(input)?;
     Ok((input, range))
 }
 

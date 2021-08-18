@@ -1,5 +1,5 @@
 use ruget_package_spec::{PackageSpec, PackageSpecError};
-use ruget_semver::VersionReq;
+use ruget_semver::Range;
 
 type Result<T> = std::result::Result<T, PackageSpecError>;
 
@@ -7,8 +7,8 @@ fn parse(input: &str) -> Result<PackageSpec> {
     input.parse()
 }
 
-fn version_req(input: &str) -> Option<VersionReq> {
-    Some(VersionReq::parse(input).unwrap())
+fn version_req(input: &str) -> Option<Range> {
+    Some(Range::parse(input).unwrap())
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn nuget_pkg_with_req() -> Result<()> {
         res,
         PackageSpec::NuGet {
             name: "hello-world".into(),
-            requested: Some(VersionReq::parse("1.2.3").unwrap())
+            requested: Some(Range::parse("1.2.3").unwrap())
         }
     );
     Ok(())

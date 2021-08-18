@@ -15,13 +15,13 @@ use serde::ser::{Serialize, Serializer};
 use crate::{extras, number, Identifier, SemverError, SemverErrorKind, SemverParseError, Version};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-struct Range {
+struct ComparatorSet {
     floating: bool,
     upper: Bound,
     lower: Bound,
 }
 
-impl Range {
+impl ComparatorSet {
     fn new(lower: Bound, upper: Bound) -> Option<Self> {
         use Bound::*;
         use Predicate::*;
@@ -80,15 +80,15 @@ impl Range {
     }
 
     fn at_least(p: Predicate) -> Option<Self> {
-        Range::new(Bound::Lower(p), Bound::upper())
+        ComparatorSet::new(Bound::Lower(p), Bound::upper())
     }
 
     fn at_most(p: Predicate) -> Option<Self> {
-        Range::new(Bound::lower(), Bound::Upper(p))
+        ComparatorSet::new(Bound::lower(), Bound::Upper(p))
     }
 
     fn exact(version: Version) -> Option<Self> {
-        Range::new(
+        ComparatorSet::new(
             Bound::Lower(Predicate::Including(version.clone())),
             Bound::Upper(Predicate::Including(version)),
         )
@@ -121,11 +121,11 @@ impl Range {
         lower_bound && upper_bound
     }
 
-    fn allows_all(&self, other: &Range) -> bool {
+    fn allows_all(&self, other: &ComparatorSet) -> bool {
         self.lower <= other.lower && other.upper <= self.upper
     }
 
-    fn allows_any(&self, other: &Range) -> bool {
+    fn allows_any(&self, other: &ComparatorSet) -> bool {
         if other.upper < self.lower {
             return false;
         }
@@ -141,7 +141,7 @@ impl Range {
         let lower = std::cmp::max(&self.lower, &other.lower);
         let upper = std::cmp::min(&self.upper, &other.upper);
 
-        Range::new(lower.clone(), upper.clone())
+        ComparatorSet::new(lower.clone(), upper.clone())
             .map(|r| r.floating(self.floating || other.floating))
     }
 
@@ -155,22 +155,22 @@ impl Range {
 
             if self.lower < overlap.lower && overlap.upper < self.upper {
                 return Some(vec![
-                    Range::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
+                    ComparatorSet::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
                         .map(|r| r.floating(self.floating || other.floating))
                         .unwrap(),
-                    Range::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
+                    ComparatorSet::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
                         .map(|r| r.floating(self.floating || other.floating))
                         .unwrap(),
                 ]);
             }
 
             if self.lower < overlap.lower {
-                return Range::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
+                return ComparatorSet::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
                     .map(|r| r.floating(self.floating || other.floating))
                     .map(|f| vec![f]);
             }
 
-            Range::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
+            ComparatorSet::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
                 .map(|r| r.floating(self.floating || other.floating))
                 .map(|f| vec![f])
         } else {
@@ -179,7 +179,7 @@ impl Range {
     }
 }
 
-impl fmt::Display for Range {
+impl fmt::Display for ComparatorSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Bound::*;
         use Predicate::*;
@@ -331,8 +331,8 @@ impl PartialOrd for Bound {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct VersionReq {
-    predicates: Vec<Range>,
+pub struct Range {
+    predicates: Vec<ComparatorSet>,
 }
 
 impl fmt::Display for Operation {
@@ -348,12 +348,12 @@ impl fmt::Display for Operation {
     }
 }
 
-impl VersionReq {
+impl Range {
     pub fn parse<S: AsRef<str>>(input: S) -> Result<Self, SemverError> {
         let input = input.as_ref();
 
         match all_consuming(many_predicates)(input) {
-            Ok((_, predicates)) => Ok(VersionReq { predicates }),
+            Ok((_, predicates)) => Ok(Range { predicates }),
             Err(err) => Err(match err {
                 Err::Error(e) | Err::Failure(e) => SemverError {
                     input: input.into(),
@@ -377,7 +377,7 @@ impl VersionReq {
 
     pub fn any() -> Self {
         Self {
-            predicates: vec![Range::new(Bound::lower(), Bound::upper()).unwrap()],
+            predicates: vec![ComparatorSet::new(Bound::lower(), Bound::upper()).unwrap()],
         }
     }
 
@@ -399,7 +399,7 @@ impl VersionReq {
         false
     }
 
-    pub fn allows_all(&self, other: &VersionReq) -> bool {
+    pub fn allows_all(&self, other: &Range) -> bool {
         for this in &self.predicates {
             for that in &other.predicates {
                 if this.allows_all(that) {
@@ -411,7 +411,7 @@ impl VersionReq {
         false
     }
 
-    pub fn allows_any(&self, other: &VersionReq) -> bool {
+    pub fn allows_any(&self, other: &Range) -> bool {
         for this in &self.predicates {
             for that in &other.predicates {
                 if this.allows_any(that) {
@@ -460,14 +460,14 @@ impl VersionReq {
     }
 }
 
-impl std::str::FromStr for VersionReq {
+impl std::str::FromStr for Range {
     type Err = SemverError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        VersionReq::parse(s)
+        Range::parse(s)
     }
 }
 
-impl Serialize for VersionReq {
+impl Serialize for Range {
     fn serialize<S>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -477,7 +477,7 @@ impl Serialize for VersionReq {
     }
 }
 
-impl<'de> Deserialize<'de> for VersionReq {
+impl<'de> Deserialize<'de> for Range {
     fn deserialize<D>(deserializer: D) -> ::std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -486,7 +486,7 @@ impl<'de> Deserialize<'de> for VersionReq {
 
         /// Deserialize `VersionReq` from a string.
         impl<'de> Visitor<'de> for VersionReqVisitor {
-            type Value = VersionReq;
+            type Value = Range;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a SemVer version requirement as a string")
@@ -496,7 +496,7 @@ impl<'de> Deserialize<'de> for VersionReq {
             where
                 E: de::Error,
             {
-                VersionReq::parse(v).map_err(de::Error::custom)
+                Range::parse(v).map_err(de::Error::custom)
             }
         }
 
@@ -504,14 +504,14 @@ impl<'de> Deserialize<'de> for VersionReq {
     }
 }
 
-fn many_predicates(input: &str) -> IResult<&str, Vec<Range>, SemverParseError<&str>> {
+fn many_predicates(input: &str) -> IResult<&str, Vec<ComparatorSet>, SemverParseError<&str>> {
     context(
         "many predicates",
         separated_list1(tuple((space0, tag("||"), space0)), predicates),
     )(input)
 }
 
-fn predicates(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn predicates(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "predicate alternatives",
         alt((
@@ -527,13 +527,13 @@ fn predicates(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
     )(input)
 }
 
-fn plain_version_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn plain_version_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "plain version range",
         map_opt(
             partial_version,
             |(major, minor, patch, revision, pre_release, build)| {
-                Range::new(
+                ComparatorSet::new(
                     Bound::Lower(Predicate::Including(Version {
                         major,
                         minor: minor.unwrap_or(0),
@@ -550,7 +550,7 @@ fn plain_version_range(input: &str) -> IResult<&str, Range, SemverParseError<&st
     )(input)
 }
 
-fn brackets_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn brackets_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "brackets",
         map_opt(
@@ -616,7 +616,7 @@ fn brackets_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
                 } else {
                     return None;
                 };
-                Range::new(lower_bound, upper_bound).map(|x| x.floating(false))
+                ComparatorSet::new(lower_bound, upper_bound).map(|x| x.floating(false))
             },
         ),
     )(input)
@@ -630,11 +630,11 @@ fn close_bracket(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
     context("closing bracket", alt((tag("]"), tag(")"))))(input)
 }
 
-fn wildcard(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn wildcard(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "wildcard",
         map_opt(x_or_asterisk, |_| {
-            Range::at_least(Predicate::Including((0, 0, 0, 0).into()))
+            ComparatorSet::at_least(Predicate::Including((0, 0, 0, 0).into()))
         }),
     )(input)
 }
@@ -671,7 +671,7 @@ fn maybe_dot_number(input: &str) -> IResult<&str, Option<u64>, SemverParseError<
     opt(preceded(tag("."), number))(input)
 }
 
-fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn any_operation_followed_by_version(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     use Operation::*;
     context(
         "operation followed by version",
@@ -679,7 +679,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
             tuple((operation, preceded(space0, partial_version))),
             |parsed| match parsed {
                 (GreaterThanEquals, (major, minor, patch, revision, pre_release, build)) => {
-                    Range::at_least(Predicate::Including(Version {
+                    ComparatorSet::at_least(Predicate::Including(Version {
                         major,
                         minor: minor.unwrap_or(0),
                         patch: patch.unwrap_or(0),
@@ -691,7 +691,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                 (
                     GreaterThan,
                     (major, Some(minor), Some(patch), Some(revision), pre_release, build),
-                ) => Range::at_least(Predicate::Excluding(Version {
+                ) => ComparatorSet::at_least(Predicate::Excluding(Version {
                     major,
                     minor,
                     patch,
@@ -700,7 +700,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     build,
                 })),
                 (GreaterThan, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    Range::at_least(Predicate::Excluding(Version {
+                    ComparatorSet::at_least(Predicate::Excluding(Version {
                         major,
                         minor,
                         patch,
@@ -710,7 +710,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (GreaterThan, (major, Some(minor), None, None, pre_release, build)) => {
-                    Range::at_least(Predicate::Including(Version {
+                    ComparatorSet::at_least(Predicate::Including(Version {
                         major,
                         minor: minor + 1,
                         patch: 0,
@@ -720,7 +720,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (GreaterThan, (major, None, None, None, pre_release, build)) => {
-                    Range::at_least(Predicate::Including(Version {
+                    ComparatorSet::at_least(Predicate::Including(Version {
                         major: major + 1,
                         minor: 0,
                         patch: 0,
@@ -730,7 +730,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (LessThan, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    Range::at_most(Predicate::Excluding(Version {
+                    ComparatorSet::at_most(Predicate::Excluding(Version {
                         major,
                         minor,
                         patch,
@@ -740,7 +740,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (LessThan, (major, Some(minor), None, None, _, build)) => {
-                    Range::at_most(Predicate::Excluding(Version {
+                    ComparatorSet::at_most(Predicate::Excluding(Version {
                         major,
                         minor,
                         patch: 0,
@@ -750,7 +750,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (LessThan, (major, minor, patch, revision, pre_release, build)) => {
-                    Range::at_most(Predicate::Excluding(Version {
+                    ComparatorSet::at_most(Predicate::Excluding(Version {
                         major,
                         minor: minor.unwrap_or(0),
                         patch: patch.unwrap_or(0),
@@ -760,7 +760,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (LessThanEquals, (major, None, None, None, _, build)) => {
-                    Range::at_most(Predicate::Including(Version {
+                    ComparatorSet::at_most(Predicate::Including(Version {
                         major,
                         minor: 0,
                         patch: 0,
@@ -770,7 +770,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (LessThanEquals, (major, Some(minor), None, None, _, build)) => {
-                    Range::at_most(Predicate::Including(Version {
+                    ComparatorSet::at_most(Predicate::Including(Version {
                         major,
                         minor,
                         patch: 0,
@@ -780,7 +780,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     }))
                 }
                 (LessThanEquals, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    Range::at_most(Predicate::Including(Version {
+                    ComparatorSet::at_most(Predicate::Including(Version {
                         major,
                         minor,
                         patch,
@@ -792,7 +792,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                 (
                     LessThanEquals,
                     (major, Some(minor), Some(patch), Some(revision), pre_release, build),
-                ) => Range::at_most(Predicate::Including(Version {
+                ) => ComparatorSet::at_most(Predicate::Including(Version {
                     major,
                     minor,
                     patch,
@@ -800,7 +800,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     pre_release,
                     build,
                 })),
-                (Exact, (major, None, None, None, pre_release, build)) => Range::exact(Version {
+                (Exact, (major, None, None, None, pre_release, build)) => ComparatorSet::exact(Version {
                     major,
                     minor: 0,
                     patch: 0,
@@ -809,7 +809,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     build,
                 }),
                 (Exact, (major, Some(minor), None, None, pre_release, build)) => {
-                    Range::exact(Version {
+                    ComparatorSet::exact(Version {
                         major,
                         minor,
                         patch: 0,
@@ -819,7 +819,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     })
                 }
                 (Exact, (major, Some(minor), Some(patch), None, pre_release, build)) => {
-                    Range::exact(Version {
+                    ComparatorSet::exact(Version {
                         major,
                         minor,
                         patch,
@@ -829,7 +829,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
                     })
                 }
                 (Exact, (major, Some(minor), Some(patch), Some(revision), pre_release, build)) => {
-                    Range::exact(Version {
+                    ComparatorSet::exact(Version {
                         major,
                         minor,
                         patch,
@@ -844,7 +844,7 @@ fn any_operation_followed_by_version(input: &str) -> IResult<&str, Range, Semver
     )(input)
 }
 
-fn x_and_asterisk_version(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn x_and_asterisk_version(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "minor X patch X",
         map_opt(
@@ -862,7 +862,7 @@ fn x_and_asterisk_version(input: &str) -> IResult<&str, Range, SemverParseError<
                 ),
             )),
             |(major, maybe_minor)| {
-                Range::new(lower_bound(major, maybe_minor), Bound::upper())
+                ComparatorSet::new(lower_bound(major, maybe_minor), Bound::upper())
                     .map(|x| x.floating(false))
             },
         ),
@@ -883,16 +883,16 @@ fn lower_bound(major: u64, maybe_minor: Option<u64>) -> Bound {
 //     }
 // }
 
-fn caret(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn caret(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "caret",
         map_opt(
             preceded(tuple((tag("^"), space0)), partial_version),
             |parsed| match parsed {
                 (0, None, None, None, _, _) => {
-                    Range::at_most(Predicate::Excluding((1, 0, 0, 0, 0).into()))
+                    ComparatorSet::at_most(Predicate::Excluding((1, 0, 0, 0, 0).into()))
                 }
-                (0, Some(minor), None, None, _, _) => Range::new(
+                (0, Some(minor), None, None, _, _) => ComparatorSet::new(
                     Bound::Lower(Predicate::Including((0, minor, 0, 0).into())),
                     Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0, 0).into())),
                 ),
@@ -900,17 +900,17 @@ fn caret(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
                 //     Bound::Lower(Predicate::Including((0, minor, patch, 0).into())),
                 //     Bound::Upper(Predicate::Excluding((0, minor + 1, 0, 0, 0).into())),
                 // ),
-                (major, None, None, None, _, _) => Range::new(
+                (major, None, None, None, _, _) => ComparatorSet::new(
                     Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
                     Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
                 ),
-                (major, Some(minor), None, None, _, _) => Range::new(
+                (major, Some(minor), None, None, _, _) => ComparatorSet::new(
                     Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
                     Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
                 ),
                 (major, Some(minor), Some(patch), revision, pre_release, _) => {
                     let revision = revision.unwrap_or(0);
-                    Range::new(
+                    ComparatorSet::new(
                         Bound::Lower(Predicate::Including(Version {
                             major,
                             minor,
@@ -942,39 +942,39 @@ fn tilde_gt(input: &str) -> IResult<&str, Option<&str>, SemverParseError<&str>> 
     )(input)
 }
 
-fn tilde(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn tilde(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "tilde",
         map_opt(tuple((tilde_gt, partial_version)), |parsed| match parsed {
-            (Some(_), (major, None, None, None, _, _)) => Range::new(
+            (Some(_), (major, None, None, None, _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
                 Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
             ),
-            (Some(_), (major, Some(minor), None, None, _, _)) => Range::new(
+            (Some(_), (major, Some(minor), None, None, _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
                 Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
             ),
-            (Some(_), (major, Some(minor), Some(patch), None, _, _)) => Range::new(
+            (Some(_), (major, Some(minor), Some(patch), None, _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
                 Bound::Upper(Predicate::Excluding((major, minor, 0, 0, 0).into())),
             ),
-            (Some(_), (major, Some(minor), Some(patch), Some(revision), _, _)) => Range::new(
+            (Some(_), (major, Some(minor), Some(patch), Some(revision), _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
                 Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
             ),
-            (None, (major, Some(minor), Some(patch), Some(revision), _, _)) => Range::new(
+            (None, (major, Some(minor), Some(patch), Some(revision), _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, patch, revision).into())),
                 Bound::Upper(Predicate::Excluding((major, minor, patch + 1, 0, 0).into())),
             ),
-            (None, (major, Some(minor), Some(patch), None, _, _)) => Range::new(
+            (None, (major, Some(minor), Some(patch), None, _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, patch, 0).into())),
                 Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into())),
             ),
-            (None, (major, Some(minor), None, None, _, _)) => Range::new(
+            (None, (major, Some(minor), None, None, _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, minor, 0, 0).into())),
                 Bound::Upper(Predicate::Excluding((major, minor + 1, 0, 0, 0).into())),
             ),
-            (None, (major, None, None, None, _, _)) => Range::new(
+            (None, (major, None, None, None, _, _)) => ComparatorSet::new(
                 Bound::Lower(Predicate::Including((major, 0, 0, 0).into())),
                 Bound::Upper(Predicate::Excluding((major + 1, 0, 0, 0, 0).into())),
             ),
@@ -999,13 +999,13 @@ where
     }
 }
 
-fn hyphenated_range(input: &str) -> IResult<&str, Range, SemverParseError<&str>> {
+fn hyphenated_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "hyphenated with major and minor",
         map_opt(
             hyphenated(partial_version, partial_version),
             |((left, maybe_l_minor, maybe_l_patch, maybe_l_revision, pre_release, _), upper)| {
-                Range::new(
+                ComparatorSet::new(
                     Bound::Lower(Predicate::Including(Version {
                         major: left,
                         minor: maybe_l_minor.unwrap_or(0),
@@ -1097,7 +1097,7 @@ fn operation(input: &str) -> IResult<&str, Operation, SemverParseError<&str>> {
     )(input)
 }
 
-impl fmt::Display for VersionReq {
+impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, range) in self.predicates.iter().enumerate() {
             if i > 0 {
@@ -1119,14 +1119,14 @@ macro_rules! create_tests_for {
             $(
                 #[test]
                 fn $name() {
-                    let version_range = VersionReq::parse($version_range).unwrap();
+                    let version_range = Range::parse($version_range).unwrap();
 
-                    let allows: Vec<VersionReq> = $allows.iter().map(|v| VersionReq::parse(v).unwrap()).collect();
+                    let allows: Vec<Range> = $allows.iter().map(|v| Range::parse(v).unwrap()).collect();
                     for version in &allows {
                         assert!(version_range.$func(version), "should have allowed: {}", version);
                     }
 
-                    let ranges: Vec<VersionReq> = $denies.iter().map(|v| VersionReq::parse(v).unwrap()).collect();
+                    let ranges: Vec<Range> = $denies.iter().map(|v| Range::parse(v).unwrap()).collect();
                     for version in &ranges {
                         assert!(!version_range.$func(version), "should have denied: {}", version);
                     }
@@ -1220,7 +1220,7 @@ create_tests_for! {
 mod intersection {
     use super::*;
 
-    fn v(range: &'static str) -> VersionReq {
+    fn v(range: &'static str) -> Range {
         range.parse().unwrap()
     }
 
@@ -1334,7 +1334,7 @@ mod intersection {
         assert_ranges_match(base_range, samples);
     }
 
-    fn assert_ranges_match(base: VersionReq, samples: Vec<(&'static str, Option<&'static str>)>) {
+    fn assert_ranges_match(base: Range, samples: Vec<(&'static str, Option<&'static str>)>) {
         for (other, expected) in samples {
             let other = v(other);
             let resulting_range = base.intersect(&other).map(|v| v.to_string());
@@ -1354,7 +1354,7 @@ mod intersection {
 mod difference {
     use super::*;
 
-    fn v(range: &'static str) -> VersionReq {
+    fn v(range: &'static str) -> Range {
         range.parse().unwrap()
     }
 
@@ -1468,7 +1468,7 @@ mod difference {
         assert_ranges_match(base_range, samples);
     }
 
-    fn assert_ranges_match(base: VersionReq, samples: Vec<(&'static str, Option<&'static str>)>) {
+    fn assert_ranges_match(base: Range, samples: Vec<(&'static str, Option<&'static str>)>) {
         for (other, expected) in samples {
             let other = v(other);
             let resulting_range = base.difference(&other).map(|v| v.to_string());
@@ -1499,7 +1499,7 @@ mod satisfies_ranges_tests {
 
     #[test]
     fn greater_than_equals() {
-        let parsed = VersionReq::parse(">=1.2.3").expect("unable to parse");
+        let parsed = Range::parse(">=1.2.3").expect("unable to parse");
 
         refute!(parsed.satisfies(&(0, 2, 3).into()), "major too low");
         refute!(parsed.satisfies(&(1, 1, 3).into()), "minor too low");
@@ -1510,7 +1510,7 @@ mod satisfies_ranges_tests {
 
     #[test]
     fn greater_than() {
-        let parsed = VersionReq::parse(">1.2.3").expect("unable to parse");
+        let parsed = Range::parse(">1.2.3").expect("unable to parse");
 
         refute!(parsed.satisfies(&(0, 2, 3).into()), "major too low");
         refute!(parsed.satisfies(&(1, 1, 3).into()), "minor too low");
@@ -1521,7 +1521,7 @@ mod satisfies_ranges_tests {
 
     #[test]
     fn exact() {
-        let parsed = VersionReq::parse("=1.2.3").expect("unable to parse");
+        let parsed = Range::parse("=1.2.3").expect("unable to parse");
 
         refute!(parsed.satisfies(&(1, 2, 2).into()), "patch too low");
         assert!(parsed.satisfies(&(1, 2, 3).into()), "exact");
@@ -1530,7 +1530,7 @@ mod satisfies_ranges_tests {
 
     #[test]
     fn less_than() {
-        let parsed = VersionReq::parse("<1.2.3").expect("unable to parse");
+        let parsed = Range::parse("<1.2.3").expect("unable to parse");
 
         assert!(parsed.satisfies(&(0, 2, 3).into()), "major below");
         assert!(parsed.satisfies(&(1, 1, 3).into()), "minor below");
@@ -1541,7 +1541,7 @@ mod satisfies_ranges_tests {
 
     #[test]
     fn less_than_equals() {
-        let parsed = VersionReq::parse("<=1.2.3").expect("unable to parse");
+        let parsed = Range::parse("<=1.2.3").expect("unable to parse");
 
         assert!(parsed.satisfies(&(0, 2, 3).into()), "major below");
         assert!(parsed.satisfies(&(1, 1, 3).into()), "minor below");
@@ -1552,7 +1552,7 @@ mod satisfies_ranges_tests {
 
     #[test]
     fn only_major() {
-        let parsed = VersionReq::parse("1").expect("unable to parse");
+        let parsed = Range::parse("1").expect("unable to parse");
 
         refute!(parsed.satisfies(&(0, 2, 3).into()), "major below");
         assert!(parsed.satisfies(&(1, 0, 0).into()), "exact bottom of range");
@@ -1577,7 +1577,7 @@ mod tests {
                 fn $name() {
                     let [input, expected] = $vals;
 
-                    let parsed = VersionReq::parse(input).expect("unable to parse");
+                    let parsed = Range::parse(input).expect("unable to parse");
 
                     assert_eq!(expected, parsed.to_string());
                 }
@@ -1673,7 +1673,7 @@ mod tests {
 
     #[derive(Serialize, Deserialize, Eq, PartialEq)]
     struct WithVersionReq {
-        req: VersionReq,
+        req: Range,
     }
 
     #[test]
@@ -1686,9 +1686,9 @@ mod tests {
     #[test]
     fn serialize_a_versionreq_to_string() {
         let output = serde_json::to_string(&WithVersionReq {
-            req: VersionReq {
+            req: Range {
                 predicates: vec![
-                    Range::at_most(Predicate::Excluding("1.2.3".parse().unwrap())).unwrap(),
+                    ComparatorSet::at_most(Predicate::Excluding("1.2.3".parse().unwrap())).unwrap(),
                 ],
             },
         })
@@ -1705,7 +1705,7 @@ mod ranges {
 
     #[test]
     fn one() {
-        let r = Range::new(
+        let r = ComparatorSet::new(
             Bound::Lower(Predicate::Including((1, 2, 0).into())),
             Bound::Upper(Predicate::Excluding((3, 3, 4).into())),
         )

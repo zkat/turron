@@ -20,9 +20,9 @@ use ruget_common::{
     thiserror::{self, Error},
 };
 
-pub use version_req::VersionReq;
+pub use range::Range;
 
-mod version_req;
+mod range;
 
 // from JavaScript: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER
 const MAX_SAFE_INTEGER: u64 = 900_719_925_474_099;

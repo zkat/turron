@@ -1,4 +1,4 @@
-use ruget_semver::VersionReq;
+use ruget_semver::Range;
 
 use nom::bytes::complete::{tag_no_case as tag, take_till1};
 use nom::combinator::{cut, map, map_res, opt};
@@ -27,7 +27,7 @@ pub(crate) fn nuget_spec(input: &str) -> IResult<&str, PackageSpec, SpecParseErr
     )(input)
 }
 
-fn semver_range(input: &str) -> IResult<&str, VersionReq, SpecParseError<&str>> {
-    let (input, range) = map_res(take_till1(|_| false), VersionReq::parse)(input)?;
+fn semver_range(input: &str) -> IResult<&str, Range, SpecParseError<&str>> {
+    let (input, range) = map_res(take_till1(|_| false), Range::parse)(input)?;
     Ok((input, range))
 }

@@ -13,7 +13,7 @@ use ruget_common::{
     serde_json,
 };
 use ruget_package_spec::PackageSpec;
-use ruget_semver::{Version, VersionReq};
+use ruget_semver::{Version, Range};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
 use crate::error::ViewError;
@@ -42,7 +42,7 @@ impl RuGetCommand for SummaryCmd {
         let package = self.package.parse()?;
         let client = NuGetClient::from_source(self.source.clone()).await?;
         let (package_id, requested) = if let PackageSpec::NuGet { name, requested } = &package {
-            (name, requested.clone().unwrap_or_else(VersionReq::any))
+            (name, requested.clone().unwrap_or_else(Range::any))
         } else {
             return Err(ViewError::InvalidPackageSpec.into());
         };
@@ -56,7 +56,7 @@ impl SummaryCmd {
         &self,
         client: &NuGetClient,
         package_id: &str,
-        requested: &VersionReq,
+        requested: &Range,
     ) -> Result<()> {
         let versions = client.versions(&package_id).await?;
         let version = ruget_pick_version::pick_version(requested, &versions[..])
@@ -81,12 +81,12 @@ impl SummaryCmd {
         &self,
         client: &NuGetClient,
         package_id: &str,
-        req: &VersionReq,
+        req: &Range,
         version: &Version,
     ) -> Result<(RegistrationIndex, RegistrationLeaf)> {
         let index = client.registration(package_id).await?;
         for page in &index.items {
-            let page_range: VersionReq = format!("[{}, {}]", page.lower, page.upper).parse()?;
+            let page_range: Range = format!("[{}, {}]", page.lower, page.upper).parse()?;
             if page_range.satisfies(version) {
                 let page = if page.items.is_some() {
                     page.clone()
