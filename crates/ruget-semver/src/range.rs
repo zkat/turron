@@ -16,12 +16,13 @@ use crate::{extras, number, Identifier, SemverError, SemverErrorKind, SemverPars
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 struct ComparatorSet {
+    floating: bool,
     upper: Bound,
     lower: Bound,
 }
 
 impl ComparatorSet {
-    fn new(lower: Bound, upper: Bound) -> Option<Self> {
+    fn new(lower: Bound, upper: Bound, floating: bool) -> Option<Self> {
         use Bound::*;
         use Predicate::*;
 
@@ -33,10 +34,15 @@ impl ComparatorSet {
                 None
             }
             (Lower(Including(v1)), Upper(Including(v2))) if v1 == v2 => Some(Self {
+                floating,
                 lower: Lower(Including(v1)),
                 upper: Upper(Including(v2)),
             }),
-            (lower, upper) if lower <= upper => Some(Self { lower, upper }),
+            (lower, upper) if lower <= upper => Some(Self {
+                floating,
+                lower,
+                upper,
+            }),
             _ => None,
         }
     }
@@ -115,11 +121,16 @@ impl ComparatorSet {
         let lower = std::cmp::max(&self.lower, &other.lower);
         let upper = std::cmp::min(&self.upper, &other.upper);
 
-        ComparatorSet::new(lower.clone(), upper.clone())
+        ComparatorSet::new(
+            lower.clone(),
+            upper.clone(),
+            self.floating || other.floating,
+        )
     }
 
     fn difference(&self, other: &Self) -> Option<Vec<Self>> {
         use Bound::*;
+        let floating = self.floating || other.floating;
 
         if let Some(overlap) = self.intersect(other) {
             if &overlap == self {
@@ -128,10 +139,18 @@ impl ComparatorSet {
 
             if self.lower < overlap.lower && overlap.upper < self.upper {
                 return Some(vec![
-                    ComparatorSet::new(self.lower.clone(), Upper(overlap.lower.predicate().flip()))
-                        .unwrap(),
-                    ComparatorSet::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
-                        .unwrap(),
+                    ComparatorSet::new(
+                        self.lower.clone(),
+                        Upper(overlap.lower.predicate().flip()),
+                        floating,
+                    )
+                    .unwrap(),
+                    ComparatorSet::new(
+                        Lower(overlap.upper.predicate().flip()),
+                        self.upper.clone(),
+                        floating,
+                    )
+                    .unwrap(),
                 ]);
             }
 
@@ -139,12 +158,17 @@ impl ComparatorSet {
                 return ComparatorSet::new(
                     self.lower.clone(),
                     Upper(overlap.lower.predicate().flip()),
+                    floating,
                 )
                 .map(|f| vec![f]);
             }
 
-            ComparatorSet::new(Lower(overlap.upper.predicate().flip()), self.upper.clone())
-                .map(|f| vec![f])
+            ComparatorSet::new(
+                Lower(overlap.upper.predicate().flip()),
+                self.upper.clone(),
+                floating,
+            )
+            .map(|f| vec![f])
         } else {
             Some(vec![self.clone()])
         }
@@ -313,7 +337,13 @@ impl Range {
 
     pub fn any() -> Self {
         Self {
-            comparators: vec![ComparatorSet::new(Bound::lower(), Bound::upper()).unwrap()],
+            comparators: vec![ComparatorSet::new(Bound::lower(), Bound::upper(), false).unwrap()],
+        }
+    }
+
+    pub fn any_floating() -> Self {
+        Self {
+            comparators: vec![ComparatorSet::new(Bound::lower(), Bound::upper(), true).unwrap()],
         }
     }
 
@@ -479,12 +509,44 @@ fn plain_version_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseE
                         pre_release: vec![Identifier::Numeric(0)],
                         build: Vec::new(),
                     })),
+                    false,
                 )
             },
         ),
     )(input)
 }
 
+fn asterisk_version(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
+    context(
+        "floating version",
+        map_opt(
+            tuple((
+                number,
+                preceded(
+                    tag("."),
+                    alt((
+                        map(tuple((tag("*"), tag("."), tag("*"))), |_| None),
+                        map(tuple((number, tag("."), tag("*"))), |(minor, _, _)| {
+                            Some(minor)
+                        }),
+                        map(tag("*"), |_| None),
+                    )),
+                ),
+            )),
+            |(major, maybe_minor)| {
+                ComparatorSet::new(
+                    Bound::Lower(Predicate::Including(
+                        (major, maybe_minor.unwrap_or(0), 0, 0).into(),
+                    )),
+                    Bound::upper(),
+                    true,
+                )
+            },
+        ),
+    )(input)
+}
+
+// TODO: this needs to accept floating versions too. _sigh_
 fn brackets_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "brackets",
@@ -566,31 +628,31 @@ fn close_brace(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
 }
 
 type PartialVersion = (
-    Option<u64>,
-    Option<u64>,
-    Option<u64>,
-    Option<u64>,
-    Vec<Identifier>,
-    Vec<Identifier>,
+    Option<u64>,     // major
+    Option<u64>,     // minor
+    Option<u64>,     // patch
+    Option<u64>,     // revision
+    Vec<Identifier>, // pre-release
+    Vec<Identifier>, // build
 );
 
 fn partial_version(input: &str) -> IResult<&str, PartialVersion, SemverParseError<&str>> {
     map(
         tuple((
-            opt(alt((number, map(tag("*"), |_| 0)))),
+            number,
             maybe_dot_number,
             maybe_dot_number,
             maybe_dot_number,
             extras,
         )),
         |(major, minor, patch, revision, (pre_release, build))| {
-            (major, minor, patch, revision, pre_release, build)
+            (Some(major), minor, patch, revision, pre_release, build)
         },
     )(input)
 }
 
 fn maybe_dot_number(input: &str) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
-    opt(preceded(tag("."), alt((number, map(tag("*"), |_| 0)))))(input)
+    opt(preceded(tag("."), number))(input)
 }
 
 impl fmt::Display for Range {
@@ -616,6 +678,7 @@ mod parser_tests {
         assert_eq!(
             range.comparators[0],
             ComparatorSet {
+                floating: false,
                 upper: Bound::Upper(Predicate::Excluding("3.2.1".parse()?)),
                 lower: Bound::Lower(Predicate::Including("1.2.3".parse()?)),
             }
@@ -626,10 +689,19 @@ mod parser_tests {
         assert_eq!(
             range.comparators[0],
             ComparatorSet {
+                floating: false,
                 upper: Bound::Upper(Predicate::Including("2.0.0".parse()?)),
                 lower: Bound::Lower(Predicate::Including("1.0.0".parse()?)),
             }
         );
+        Ok(())
+    }
+
+    #[test]
+    fn pre_release_casing() -> Result<(), SemverError> {
+        let version: Version = "1.2.3-alpha".parse()?;
+        let range: Range = "1.2.3-ALPHA".parse()?;
+        assert!(range.satisfies(&version));
         Ok(())
     }
 }
