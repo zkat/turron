@@ -443,6 +443,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ci_info"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98f1c9ee4939df5d42c01815f1fb783ab203c1dea7cee5e051ede261c4049b1f"
+dependencies = [
+ "envmnt",
+]
+
+[[package]]
 name = "cipher"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -859,6 +868,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "envmnt"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbfac51e9996e41d78a943227b7f313efcebf545b21584a0e213b956a062e11e"
+dependencies = [
+ "fsio",
+ "indexmap",
+]
+
+[[package]]
 name = "event-listener"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -920,6 +939,12 @@ dependencies = [
  "matches",
  "percent-encoding",
 ]
+
+[[package]]
+name = "fsio"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a50045aa8931ae01afbc5d72439e8f57f326becb8c70d07dfc816778eff3d167"
 
 [[package]]
 name = "funty"
@@ -1201,12 +1226,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indenter"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
-
-[[package]]
 name = "indexmap"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1407,21 +1426,23 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "0.11.0"
+version = "1.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "380fc085c2f14fd4e2336482aaf01f0a8ae42cfe4d4fe66eb4a5bda0a07e1447"
+checksum = "03992a51473929fcec608145335a8cb4b621a77e86c1039dd07da97361ad6810"
 dependencies = [
- "indenter",
+ "atty",
+ "ci_info",
  "miette-derive",
  "once_cell",
+ "owo-colors",
  "thiserror",
 ]
 
 [[package]]
 name = "miette-derive"
-version = "0.11.0"
+version = "1.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98430d8a903db4f06ec94d35f01cdfeb05fb8e115c6ac09114c53d6a2593896e"
+checksum = "6b67cdd14eccde20825fc08d3445fefe2a8ba9369d2cc10ab01c17953f485de4"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -138,11 +138,12 @@ impl NuGetApiError {
         let len = json.len();
         Self::BadJson {
             source: err,
-            url,
+            url: url.clone(),
             json,
             snip: (
+                url,
                 err_offset.offset() - cmp::min(40, err_offset.offset()),
-                cmp::min(40, len - err_offset.offset()),
+                cmp::min(80, len - err_offset.offset()),
             )
                 .into(),
             err_loc: ("here", err_offset, 1.into()).into(),
