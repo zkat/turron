@@ -1,7 +1,7 @@
 use std::{cmp, io, sync::Arc};
 
 use ruget_common::{
-    miette::{self, Diagnostic, SourceOffset, SourceSpan},
+    miette::{self, Diagnostic, NamedSource, SourceOffset},
     quick_xml, serde_json, surf,
     thiserror::{self, Error},
 };
@@ -72,7 +72,7 @@ pub enum NuGetApiError {
     #[error("Package does not exist.")]
     #[diagnostic(
         code(ruget::api::package_not_found),
-        help("This can happen if your provided API key is invalid, or if the version you specified does not exist. Double-check both!")
+        help("This can happen if your provided API key is invalid, or if the version you specified does not exist. Double-check both!"),
     )]
     PackageNotFound,
 
@@ -88,16 +88,16 @@ pub enum NuGetApiError {
     #[error("Received some bad JSON from the source. Unable to parse.")]
     #[diagnostic(
         code(ruget::api::bad_json),
-        help("This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported.")
+        help("This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
     )]
     BadJson {
         source: serde_json::Error,
         url: String,
-        json: String,
-        #[snippet(json)]
-        snip: SourceSpan,
-        #[highlight(snip)]
-        err_loc: SourceSpan,
+        json: NamedSource,
+        #[snippet(json, message("JSON context..."))]
+        snip: (usize, usize),
+        #[highlight(snip, label = "here")]
+        err_loc: (usize, usize),
     },
 
     /// Got some bad XML we couldn't parse.
@@ -139,14 +139,12 @@ impl NuGetApiError {
         Self::BadJson {
             source: err,
             url: url.clone(),
-            json,
+            json: NamedSource::new(url, json),
             snip: (
-                url,
                 err_offset.offset() - cmp::min(40, err_offset.offset()),
                 cmp::min(80, len - err_offset.offset()),
-            )
-                .into(),
-            err_loc: ("here", err_offset, 1.into()).into(),
+            ),
+            err_loc: (err_offset.offset(), 1),
         }
     }
 }

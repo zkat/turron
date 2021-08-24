@@ -119,7 +119,7 @@ impl Diagnostic for SemverError {
                 source: &self.input,
                 // TODO: Don't display the entire thing if it might be too long.
                 context: (0, self.input.len()).into(),
-                highlights: Some(vec![("idk", self.offset, 1).into()]),
+                highlights: Some(vec![(Some("idk".into()), (self.offset, 1).into())]),
             }]
             .into_iter(),
         ))
