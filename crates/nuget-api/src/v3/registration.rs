@@ -5,7 +5,7 @@ use ruget_common::{
     serde_json,
     surf::{self, StatusCode, Url},
 };
-use ruget_semver::{Version, Range};
+use ruget_semver::{Range, Version};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
@@ -107,7 +107,6 @@ pub struct RegistrationLeaf {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogEntry {
-    foo: String,
     pub id: String,
     pub version: Version,
     #[serde(skip_serializing_if = "Option::is_none")]
