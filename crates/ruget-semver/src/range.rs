@@ -7,12 +7,12 @@ use nom::character::complete::space0;
 use nom::combinator::{all_consuming, cut, map, map_opt, opt};
 use nom::error::context;
 use nom::multi::separated_list1;
-use nom::sequence::{preceded, tuple};
+use nom::sequence::tuple;
 use nom::{Err, IResult};
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::ser::{Serialize, Serializer};
 
-use crate::{extras, number, Identifier, SemverError, SemverErrorKind, SemverParseError, Version};
+use crate::{extras, number, SemverError, SemverErrorKind, SemverParseError, Version};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 struct ComparatorSet {
@@ -347,6 +347,10 @@ impl Range {
         }
     }
 
+    pub fn is_floating(&self) -> bool {
+        self.comparators.iter().any(|comp| comp.floating)
+    }
+
     pub fn has_pre_release(&self) -> bool {
         self.comparators.iter().any(|pred| pred.has_pre())
     }
@@ -479,7 +483,7 @@ fn range(input: &str) -> IResult<&str, Vec<ComparatorSet>, SemverParseError<&str
 
 fn comparators(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     alt((
-        // [1.2.3, 3.2.1)
+        // [1.2.3, 3.2.1) || [1.*,3.1]
         brackets_range,
         // 1.0 || 1.* || 1 || *
         plain_version_range,
@@ -489,134 +493,270 @@ fn comparators(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&st
 fn plain_version_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
     context(
         "base version range",
-        map_opt(
-            partial_version,
-            |(major, minor, patch, revision, pre_release, build)| {
-                ComparatorSet::new(
-                    Bound::Lower(Predicate::Including(Version {
-                        major: major.unwrap_or(0),
-                        minor: minor.unwrap_or(0),
-                        patch: patch.unwrap_or(0),
-                        revision: revision.unwrap_or(0),
-                        pre_release,
-                        build,
-                    })),
-                    Bound::Upper(Predicate::Excluding(Version {
-                        major: major.map(|x| x + 1).unwrap_or(1),
+        map_opt(plain_version, |(floating, version)| {
+            ComparatorSet::new(
+                if is_empty(&version) {
+                    Bound::lower()
+                } else {
+                    Bound::Lower(Predicate::Including(version.clone()))
+                },
+                match version {
+                    Version {
+                        major: 0,
                         minor: 0,
                         patch: 0,
-                        revision: 0,
-                        pre_release: vec![Identifier::Numeric(0)],
+                        revision,
+                        ..
+                    } => Bound::Upper(Predicate::Excluding(Version {
+                        major: 0,
+                        minor: 0,
+                        patch: 0,
+                        revision: revision + 1,
                         build: Vec::new(),
+                        pre_release: Vec::new(),
                     })),
-                    false,
-                )
-            },
-        ),
+                    Version {
+                        major: 0,
+                        minor: 0,
+                        patch,
+                        ..
+                    } => Bound::Upper(Predicate::Excluding(Version {
+                        major: 0,
+                        minor: 0,
+                        patch: patch + 1,
+                        revision: 0,
+                        build: Vec::new(),
+                        pre_release: Vec::new(),
+                    })),
+                    Version {
+                        major: 0, minor, ..
+                    } => Bound::Upper(Predicate::Excluding(Version {
+                        major: 0,
+                        minor: minor + 1,
+                        patch: 0,
+                        revision: 0,
+                        build: Vec::new(),
+                        pre_release: Vec::new(),
+                    })),
+                    Version { major, .. } if floating => {
+                        // N.*
+                        Bound::Upper(Predicate::Excluding(Version {
+                            major: major + 1,
+                            minor: 0,
+                            patch: 0,
+                            revision: 0,
+                            build: Vec::new(),
+                            pre_release: Vec::new(),
+                        }))
+                    }
+                    _ => Bound::upper(),
+                },
+                floating,
+            )
+        }),
     )(input)
 }
 
-fn asterisk_version(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
+fn plain_version(input: &str) -> IResult<&str, (bool, Version), SemverParseError<&str>> {
+    let (input, major) = num_or_star(input)?;
+
+    let (input, minor) = if major.is_some() {
+        // Major was a number.
+        opt(dotversion)(input)?
+    } else {
+        // Major was *.
+        let (input, extras) = opt(extras)(input)?;
+        return Ok((
+            input,
+            (
+                true,
+                Version {
+                    major: 0,
+                    minor: 0,
+                    patch: 0,
+                    revision: 0,
+                    pre_release: extras.map(|(pre, _)| pre).unwrap_or_else(Vec::new),
+                    build: Vec::new(),
+                },
+            ),
+        ));
+    };
+
+    let (input, patch) = if minor.flatten().is_some() {
+        // Minor is a _number_, specifically.
+        opt(dotversion)(input)?
+    } else {
+        // Minor is *.
+        let (input, extras) = opt(extras)(input)?;
+        return Ok((
+            input,
+            (
+                minor.is_some(),
+                Version {
+                    major: major.unwrap(),
+                    minor: minor.flatten().unwrap_or(0),
+                    patch: 0,
+                    revision: 0,
+                    pre_release: extras.map(|(pre, _)| pre).unwrap_or_else(Vec::new),
+                    build: Vec::new(),
+                },
+            ),
+        ));
+    };
+
+    let (input, revision) = if patch.flatten().is_some() {
+        opt(dotversion)(input)?
+    } else {
+        let (input, extras) = opt(extras)(input)?;
+        return Ok((
+            input,
+            (
+                patch.is_some(),
+                Version {
+                    major: major.unwrap(),
+                    minor: minor.flatten().unwrap_or(0),
+                    patch: 0,
+                    revision: 0,
+                    pre_release: extras.map(|(pre, _)| pre).unwrap_or_else(Vec::new),
+                    build: Vec::new(),
+                },
+            ),
+        ));
+    };
+
+    let (input, extras) = opt(extras)(input)?;
+    let (pre_release, build) = extras.unwrap_or_else(|| (Vec::new(), Vec::new()));
+    Ok((
+        input,
+        (
+            revision.is_some(),
+            Version {
+                major: major.unwrap_or(0),
+                minor: minor.flatten().unwrap_or(0),
+                patch: patch.flatten().unwrap_or(0),
+                revision: revision.flatten().unwrap_or(0),
+                build,
+                pre_release,
+            },
+        ),
+    ))
+}
+
+fn dotversion(input: &str) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
+    let (input, _) = tag(".")(input)?;
+    num_or_star(input)
+}
+
+fn num_or_star(input: &str) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
     context(
-        "floating version",
-        map_opt(
-            tuple((
-                number,
-                preceded(
-                    tag("."),
-                    alt((
-                        map(tuple((tag("*"), tag("."), tag("*"))), |_| None),
-                        map(tuple((number, tag("."), tag("*"))), |(minor, _, _)| {
-                            Some(minor)
-                        }),
-                        map(tag("*"), |_| None),
-                    )),
-                ),
-            )),
-            |(major, maybe_minor)| {
-                ComparatorSet::new(
-                    Bound::Lower(Predicate::Including(
-                        (major, maybe_minor.unwrap_or(0), 0, 0).into(),
-                    )),
-                    Bound::upper(),
-                    true,
-                )
-            },
-        ),
+        "Version number or asterisk",
+        alt((map(number, Some), map(tag("*"), |_| None))),
     )(input)
 }
 
-// TODO: this needs to accept floating versions too. _sigh_
+fn is_empty(version: &Version) -> bool {
+    version
+        == &Version {
+            major: 0,
+            minor: 0,
+            patch: 0,
+            revision: 0,
+            build: Vec::new(),
+            pre_release: Vec::new(),
+        }
+}
+
 fn brackets_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseError<&str>> {
-    context(
-        "brackets",
-        map_opt(
-            tuple((
-                open_brace,
-                space0,
-                opt(partial_version),
-                space0,
-                opt(tag(",")),
-                space0,
-                opt(partial_version),
-                space0,
-                close_brace,
-            )),
-            |(open, _, lower, _, comma, _, upper, _, close)| {
-                let lower_bound = if let Some(lower) = &lower {
-                    let version = Version {
-                        major: lower.0.unwrap_or(0),
-                        minor: lower.1.unwrap_or(0),
-                        patch: lower.2.unwrap_or(0),
-                        revision: lower.3.unwrap_or(0),
-                        pre_release: lower.4.clone(),
-                        build: lower.5.clone(),
-                    };
-                    Bound::Lower(match open {
-                        "(" => Predicate::Excluding(version),
-                        "[" => Predicate::Including(version),
-                        _ => unreachable!(),
-                    })
-                } else {
-                    Bound::lower()
-                };
-                let upper_bound = if let Some(upper) = upper {
-                    let version = Version {
-                        major: upper.0.unwrap_or(0),
-                        minor: upper.1.unwrap_or(0),
-                        patch: upper.2.unwrap_or(0),
-                        revision: upper.3.unwrap_or(0),
-                        pre_release: upper.4,
-                        build: upper.5,
-                    };
-                    Bound::Upper(match close {
-                        ")" => Predicate::Excluding(version),
-                        "]" => Predicate::Including(version),
-                        _ => unreachable!(),
-                    })
-                } else if comma.is_some() {
+    let mut floating = false;
+    let (input, open) = open_brace(input)?;
+    let (input, _) = space0(input)?;
+    let (input, comma) = opt(tag(","))(input)?;
+    let (input, (is_float, version1)) = cut(plain_version)(input)?;
+    floating = floating || is_float;
+    if comma.is_some() {
+        let (input, _) = space0(input)?;
+        let (input, _) = close_brace(input)?;
+        return Ok((
+            input,
+            ComparatorSet::new(
+                Bound::lower(),
+                if floating && is_empty(&version1) {
                     Bound::upper()
-                } else if let Some(lower) = &lower {
-                    let version = Version {
-                        major: lower.0.unwrap_or(0),
-                        minor: lower.1.unwrap_or(0),
-                        patch: lower.2.unwrap_or(0),
-                        revision: lower.3.unwrap_or(0),
-                        pre_release: lower.4.clone(),
-                        build: lower.5.clone(),
-                    };
-                    Bound::Upper(match close {
-                        ")" => Predicate::Excluding(version),
-                        "]" => Predicate::Including(version),
+                } else {
+                    Bound::Upper(match open {
+                        "(" => Predicate::Excluding(version1),
+                        "[" => Predicate::Including(version1),
                         _ => unreachable!(),
                     })
+                },
+                floating,
+            )
+            .unwrap(),
+        ));
+    }
+    let (input, _) = space0(input)?;
+    let (input, comma) = opt(tag(","))(input)?;
+    if comma.is_none() {
+        let (input, _) = space0(input)?;
+        let (input, _) = close_brace(input)?;
+        return Ok((
+            input,
+            ComparatorSet::new(
+                if floating && is_empty(&version1) {
+                    Bound::lower()
                 } else {
-                    return None;
-                };
-                ComparatorSet::new(lower_bound, upper_bound)
-            },
-        ),
-    )(input)
+                    Bound::Lower(match open {
+                        "(" => Predicate::Excluding(version1),
+                        "[" => Predicate::Including(version1),
+                        _ => unreachable!(),
+                    })
+                },
+                Bound::upper(),
+                floating,
+            )
+            .unwrap(),
+        ));
+    }
+
+    let (input, _) = space0(input)?;
+    let (input, version2) = opt(plain_version)(input)?;
+    let (input, close) = close_brace(input)?;
+
+    if let Some((is_float, version2)) = version2 {
+        let v1float = floating;
+        floating = floating || is_float;
+        let lower = if v1float && is_empty(&version1) {
+            Bound::lower()
+        } else {
+            Bound::Lower(match open {
+                "(" => Predicate::Excluding(version1),
+                "[" => Predicate::Including(version1),
+                _ => unreachable!(),
+            })
+        };
+        let upper = if is_float && is_empty(&version2) {
+            Bound::upper()
+        } else {
+            Bound::Upper(match close {
+                ")" => Predicate::Excluding(version2),
+                "]" => Predicate::Including(version2),
+                _ => unreachable!(),
+            })
+        };
+        Ok((input, ComparatorSet::new(lower, upper, floating).unwrap()))
+    } else {
+        let lower = if floating && is_empty(&version1) {
+            Bound::lower()
+        } else {
+            Bound::Lower(match open {
+                "(" => Predicate::Excluding(version1),
+                "[" => Predicate::Including(version1),
+                _ => unreachable!(),
+            })
+        };
+        let upper = Bound::upper();
+        Ok((input, ComparatorSet::new(lower, upper, floating).unwrap()))
+    }
 }
 
 fn open_brace(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
@@ -625,34 +765,6 @@ fn open_brace(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
 
 fn close_brace(input: &str) -> IResult<&str, &str, SemverParseError<&str>> {
     context("closing bracket", alt((tag("]"), tag(")"))))(input)
-}
-
-type PartialVersion = (
-    Option<u64>,     // major
-    Option<u64>,     // minor
-    Option<u64>,     // patch
-    Option<u64>,     // revision
-    Vec<Identifier>, // pre-release
-    Vec<Identifier>, // build
-);
-
-fn partial_version(input: &str) -> IResult<&str, PartialVersion, SemverParseError<&str>> {
-    map(
-        tuple((
-            number,
-            maybe_dot_number,
-            maybe_dot_number,
-            maybe_dot_number,
-            extras,
-        )),
-        |(major, minor, patch, revision, (pre_release, build))| {
-            (Some(major), minor, patch, revision, pre_release, build)
-        },
-    )(input)
-}
-
-fn maybe_dot_number(input: &str) -> IResult<&str, Option<u64>, SemverParseError<&str>> {
-    opt(preceded(tag("."), number))(input)
 }
 
 impl fmt::Display for Range {
@@ -676,24 +788,49 @@ mod parser_tests {
         let range: Range = "[1.2.3, 3.2.1)".parse()?;
         assert_eq!(range.comparators.len(), 1);
         assert_eq!(
-            range.comparators[0],
-            ComparatorSet {
-                floating: false,
-                upper: Bound::Upper(Predicate::Excluding("3.2.1".parse()?)),
-                lower: Bound::Lower(Predicate::Including("1.2.3".parse()?)),
-            }
+            range.comparators[0].to_string(),
+            "[1.2.3,3.2.1)".to_string()
         );
 
-        let range: Range = "[1,2]".parse()?;
+        let range: Range = "[1,2.1]".parse()?;
+        assert!(!range.is_floating());
         assert_eq!(range.comparators.len(), 1);
         assert_eq!(
-            range.comparators[0],
-            ComparatorSet {
-                floating: false,
-                upper: Bound::Upper(Predicate::Including("2.0.0".parse()?)),
-                lower: Bound::Lower(Predicate::Including("1.0.0".parse()?)),
-            }
+            range.comparators[0].to_string(),
+            "[1.0.0,2.1.0]".to_string()
         );
+
+        let range: Range = "[1.*,2.1]".parse()?;
+        assert!(range.is_floating());
+        assert_eq!(range.comparators.len(), 1);
+        assert_eq!(
+            range.comparators[0].to_string(),
+            "[1.0.0,2.1.0]".to_string()
+        );
+
+        let range: Range = "[1,2.1.*]".parse()?;
+        assert!(range.is_floating());
+        assert_eq!(range.comparators.len(), 1);
+        assert_eq!(
+            range.comparators[0].to_string(),
+            "[1.0.0,2.1.0]".to_string()
+        );
+
+        let range: Range = "[*]".parse()?;
+        assert!(range.is_floating());
+        assert_eq!(range.comparators.len(), 1);
+        assert_eq!(range.comparators[0].to_string(), "*".to_string());
+
+        let range: Range = "[*,]".parse()?;
+        assert!(range.is_floating());
+        assert_eq!(range.comparators.len(), 1);
+        assert_eq!(range.comparators[0].to_string(), "*".to_string());
+
+        let range: Range = "[,*)".parse()?;
+        assert!(range.is_floating());
+        assert_eq!(range.comparators.len(), 1);
+        assert_eq!(range.comparators[0].to_string(), "*".to_string());
+
         Ok(())
     }
 

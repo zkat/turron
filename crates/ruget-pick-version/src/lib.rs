@@ -6,15 +6,17 @@ pub fn pick_version(req: &Range, versions: &[Version]) -> Option<Version> {
 
 #[derive(Debug, Clone, Default)]
 pub struct VersionPicker {
-    minimal: bool,
+    force_floating: bool,
 }
 
 impl VersionPicker {
     pub fn new() -> Self {
         Default::default()
     }
-    pub fn new_minimal() -> Self {
-        Self { minimal: true }
+    pub fn new_floating_only() -> Self {
+        Self {
+            force_floating: true,
+        }
     }
 
     pub fn pick_version(&self, req: &Range, versions: &[Version]) -> Option<Version> {
@@ -27,7 +29,7 @@ impl VersionPicker {
             .collect::<Vec<_>>();
         versions.sort_unstable();
 
-        if !self.minimal {
+        if req.is_floating() || self.force_floating {
             versions.reverse();
         }
         versions.into_iter().find(|v| req.satisfies(v))
@@ -54,6 +56,18 @@ mod tests {
     fn partial() {
         let picker = VersionPicker::default();
         let req = "1".parse().unwrap();
+        let versions = vec!["1.2.0", "1.2.0-beta", "2.0.0"]
+            .into_iter()
+            .map(|v| v.parse().unwrap())
+            .collect::<Vec<_>>();
+        let picked = picker.pick_version(&req, &versions);
+        assert_eq!(Some("1.2.0".parse().unwrap()), picked);
+    }
+
+    #[test]
+    fn floating() {
+        let picker = VersionPicker::default();
+        let req = "1.*".parse().unwrap();
         let versions = vec!["1.2.0", "1.2.0-beta", "2.0.0"]
             .into_iter()
             .map(|v| v.parse().unwrap())
