@@ -501,6 +501,7 @@ fn plain_version_range(input: &str) -> IResult<&str, ComparatorSet, SemverParseE
                     Bound::Lower(Predicate::Including(version.clone()))
                 },
                 match version {
+                    v if is_empty(&v) => Bound::upper(),
                     Version {
                         major: 0,
                         minor: 0,
@@ -782,6 +783,15 @@ impl fmt::Display for Range {
 #[cfg(test)]
 mod parser_tests {
     use super::*;
+
+    #[test]
+    fn plain_version_range() -> Result<(), SemverError> {
+        let range: Range = "*".parse()?;
+        assert_eq!(range.comparators.len(), 1);
+        assert_eq!(range.comparators[0].to_string(), "*".to_string());
+
+        Ok(())
+    }
 
     #[test]
     fn brackets_range() -> Result<(), SemverError> {
