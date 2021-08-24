@@ -42,7 +42,7 @@ impl RuGetCommand for IconCmd {
         let package = self.package.parse()?;
         let client = NuGetClient::from_source(self.source.clone()).await?;
         let (package_id, requested) = if let PackageSpec::NuGet { name, requested } = &package {
-            (name, requested.clone().unwrap_or_else(Range::any))
+            (name, requested.clone().unwrap_or_else(Range::any_floating))
         } else {
             return Err(ViewError::InvalidPackageSpec.into());
         };
