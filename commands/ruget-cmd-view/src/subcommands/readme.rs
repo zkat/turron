@@ -8,7 +8,7 @@ use ruget_command::{
 };
 use ruget_common::miette::{DiagnosticReport, DiagnosticResult as Result};
 use ruget_package_spec::PackageSpec;
-use ruget_semver::VersionReq;
+use ruget_semver::Range;
 
 use crate::error::ViewError;
 
@@ -36,7 +36,7 @@ impl RuGetCommand for ReadmeCmd {
         let package = self.package.parse()?;
         let client = NuGetClient::from_source(self.source.clone()).await?;
         let (package_id, requested) = if let PackageSpec::NuGet { name, requested } = &package {
-            (name, requested.clone().unwrap_or_else(VersionReq::any))
+            (name, requested.clone().unwrap_or_else(Range::any))
         } else {
             return Err(ViewError::InvalidPackageSpec.into());
         };
@@ -49,7 +49,7 @@ impl ReadmeCmd {
         &self,
         client: &NuGetClient,
         package_id: &str,
-        requested: &VersionReq,
+        requested: &Range,
     ) -> Result<()> {
         let versions = client.versions(&package_id).await?;
         let version = ruget_pick_version::pick_version(requested, &versions[..])

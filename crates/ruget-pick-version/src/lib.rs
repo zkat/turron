@@ -1,21 +1,25 @@
-use ruget_semver::{Version, VersionReq};
+use ruget_semver::{Range, Version};
 
-pub fn pick_version(req: &VersionReq, versions: &[Version]) -> Option<Version> {
+pub fn pick_version(req: &Range, versions: &[Version]) -> Option<Version> {
     VersionPicker::default().pick_version(req, versions)
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct VersionPicker {
-    pub force_floating: bool,
+    force_floating: bool,
 }
 
 impl VersionPicker {
-    pub fn new(force_floating: bool) -> Self {
-        Self { force_floating }
+    pub fn new() -> Self {
+        Default::default()
+    }
+    pub fn new_floating_only() -> Self {
+        Self {
+            force_floating: true,
+        }
     }
 
-    pub fn pick_version(&self, req: &VersionReq, versions: &[Version]) -> Option<Version> {
-        let floating = self.force_floating || req.is_floating();
+    pub fn pick_version(&self, req: &Range, versions: &[Version]) -> Option<Version> {
         let include_pre = req.has_pre_release();
         let mut versions = versions
             .iter()
@@ -25,7 +29,7 @@ impl VersionPicker {
             .collect::<Vec<_>>();
         versions.sort_unstable();
 
-        if floating {
+        if req.is_floating() || self.force_floating {
             versions.reverse();
         }
         versions.into_iter().find(|v| req.satisfies(v))
@@ -52,6 +56,18 @@ mod tests {
     fn partial() {
         let picker = VersionPicker::default();
         let req = "1".parse().unwrap();
+        let versions = vec!["1.2.0", "1.2.0-beta", "2.0.0"]
+            .into_iter()
+            .map(|v| v.parse().unwrap())
+            .collect::<Vec<_>>();
+        let picked = picker.pick_version(&req, &versions);
+        assert_eq!(Some("1.2.0".parse().unwrap()), picked);
+    }
+
+    #[test]
+    fn floating() {
+        let picker = VersionPicker::default();
+        let req = "1.*".parse().unwrap();
         let versions = vec!["1.2.0", "1.2.0-beta", "2.0.0"]
             .into_iter()
             .map(|v| v.parse().unwrap())

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use ruget_semver::VersionReq as Range;
+use ruget_semver::Range;
 use url::Url;
 
 use crate::error::{PackageSpecError, SpecErrorKind};
@@ -228,10 +228,10 @@ mod tests {
         let info = GitInfo::Url {
             url: "git://foo.org/goodbye.git".parse().unwrap(),
             committish: None,
-            semver: Some("^1.2.3".parse().unwrap()),
+            semver: Some("1.2.3".parse().unwrap()),
         };
         assert_eq!(
-            String::from("git://foo.org/goodbye.git#semver:>=1.2.3 <2.0.0-0"),
+            String::from("git://foo.org/goodbye.git#semver:[1.2.3,)"),
             format!("{}", info)
         );
     }
@@ -250,10 +250,10 @@ mod tests {
         let info = GitInfo::Ssh {
             ssh: "git@foo.com:here.git".into(),
             committish: None,
-            semver: Some("^1.2.3".parse().unwrap()),
+            semver: Some("1.2.3".parse().unwrap()),
         };
         assert_eq!(
-            String::from("git+ssh://git@foo.com:here.git#semver:>=1.2.3 <2.0.0-0"),
+            String::from("git+ssh://git@foo.com:here.git#semver:[1.2.3,)"),
             format!("{}", info)
         );
     }

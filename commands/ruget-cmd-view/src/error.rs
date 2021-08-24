@@ -2,7 +2,7 @@ use ruget_common::{
     miette::{self, Diagnostic},
     thiserror::{self, Error},
 };
-use ruget_semver::{Version, VersionReq};
+use ruget_semver::{Version, Range};
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum ViewError {
@@ -22,7 +22,7 @@ pub enum ViewError {
         code(ruget::view::version_not_found),
         help("Try running `ruget view <id> versions`")
     )]
-    VersionNotFound(String, VersionReq),
+    VersionNotFound(String, Range),
 
     #[error("{0}@{1} does not have a readme")]
     #[diagnostic(code(ruget::view::readme_not_found), help("ruget only supports READMEs included in the package itself, which is not commonly used."))]

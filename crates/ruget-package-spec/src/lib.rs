@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use nom::combinator::all_consuming;
 use nom::Err;
-use ruget_semver::VersionReq;
+use ruget_semver::Range;
 
 pub use crate::error::{PackageSpecError, SpecErrorKind};
 pub use crate::gitinfo::{GitHost, GitInfo};
@@ -21,7 +21,7 @@ pub enum PackageSpec {
     },
     NuGet {
         name: String,
-        requested: Option<VersionReq>,
+        requested: Option<Range>,
     },
     Git(GitInfo),
 }

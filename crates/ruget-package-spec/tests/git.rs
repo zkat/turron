@@ -98,7 +98,7 @@ fn git_spec_hosted_committish() -> Result<()> {
 
 #[test]
 fn git_spec_hosted_semver() -> Result<()> {
-    let res = parse("github:foo/bar#semver:^1.2.3")?;
+    let res = parse("github:foo/bar#semver:1.2.3")?;
     assert_eq!(
         res,
         PackageSpec::Git(GitInfo::Hosted {
@@ -106,11 +106,11 @@ fn git_spec_hosted_semver() -> Result<()> {
             owner: "foo".into(),
             repo: "bar".into(),
             committish: None,
-            semver: Some("^1.2.3".parse().unwrap()),
+            semver: Some("[1.2.3,)".parse().unwrap()),
             requested: None,
         })
     );
-    let res = parse("github:foo/bar#semver:1.2.3")?;
+    let res = parse("github:foo/bar#semver:[1.2.3, )")?;
     assert_eq!(
         res,
         PackageSpec::Git(GitInfo::Hosted {
@@ -186,13 +186,13 @@ fn git_spec_url_committish() -> Result<()> {
 
 #[test]
 fn git_spec_url_semver() -> Result<()> {
-    let res = parse("git://foo.com/foo/bar#semver:^1.2.3")?;
+    let res = parse("git://foo.com/foo/bar#semver:1.2.3")?;
     assert_eq!(
         res,
         PackageSpec::Git(GitInfo::Url {
             url: Url::parse("git://foo.com/foo/bar").unwrap(),
             committish: None,
-            semver: Some("^1.2.3".parse().unwrap()),
+            semver: Some("1.2.3".parse().unwrap()),
         })
     );
     Ok(())
@@ -288,13 +288,13 @@ fn git_spec_scp_committish() -> Result<()> {
 
 #[test]
 fn git_spec_scp_semver() -> Result<()> {
-    let res = parse("git+ssh://blah@foo.com:foo/bar#semver:^1.2.3")?;
+    let res = parse("git+ssh://blah@foo.com:foo/bar#semver:1.2.3")?;
     assert_eq!(
         res,
         PackageSpec::Git(GitInfo::Ssh {
             ssh: "blah@foo.com:foo/bar".into(),
             committish: None,
-            semver: Some("^1.2.3".parse().unwrap()),
+            semver: Some("1.2.3".parse().unwrap()),
         })
     );
     Ok(())
