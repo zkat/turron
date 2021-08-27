@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "dgSpecHash": "2ic8k//WfkKxPUpKQmEKmtHntftuQTTKnv99TiUUV36nngaiVwKwDWCREHSQM8q7hOz3Ov3uP2RkI5SyeE564w==",
+  "success": false,
+  "projectFilePath": "C:\\Users\\micro\\src\\ruget\\dotnet-tool\\ruget.csproj",
+  "expectedPackageFiles": [],
+  "logs": [
+    {
+      "code": "NU1100",
+      "level": "Error",
+      "message": "Unable to resolve 'DWG.Directories (>= 1.0.0)' for 'net6.0'.",
+      "libraryId": "DWG.Directories",
+      "targetGraphs": [
+        "net6.0"
+      ]
+    }
+  ]
+}
