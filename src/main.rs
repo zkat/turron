@@ -1,7 +1,7 @@
 use ruget::RuGet;
-use ruget_common::{miette::DiagnosticResult, smol};
+use ruget_common::{miette::Result, smol};
 
-fn main() -> DiagnosticResult<()> {
-    smol::block_on(async { RuGet::load().await })?;
+fn main() -> Result<()> {
+    smol::block_on(RuGet::load())?;
     Ok(())
 }

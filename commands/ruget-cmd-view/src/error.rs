@@ -2,7 +2,7 @@ use ruget_common::{
     miette::{self, Diagnostic},
     thiserror::{self, Error},
 };
-use ruget_semver::{Version, Range};
+use ruget_semver::{Range, Version};
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum ViewError {

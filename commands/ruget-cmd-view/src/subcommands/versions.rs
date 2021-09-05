@@ -12,7 +12,7 @@ use ruget_command::{
 use ruget_common::{
     chrono::Datelike,
     chrono_humanize::HumanTime,
-    miette::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{Context, IntoDiagnostic, Result},
     serde_json,
 };
 use ruget_package_spec::PackageSpec;
@@ -78,7 +78,8 @@ impl VersionsCmd {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&map)
-                    .into_diagnostic(&"ruget::view::json_serialization")?
+                    .into_diagnostic()
+                    .context("Failed to serialize versions back into JSON")?
             );
         } else if !self.quiet {
             let headers = vec!["version", "published_at"]

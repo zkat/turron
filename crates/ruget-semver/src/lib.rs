@@ -102,7 +102,7 @@ struct SemverParseError<I> {
 }
 
 impl Diagnostic for SemverError {
-    fn code<'a>(&'a self) -> Box<dyn fmt::Display + 'a> {
+    fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
         self.kind.code()
     }
 

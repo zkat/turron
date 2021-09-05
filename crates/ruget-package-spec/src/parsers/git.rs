@@ -49,9 +49,7 @@ fn hosted_git_prefix(input: &str) -> IResult<&str, GitHost, SpecParseError<&str>
     )(input)
 }
 
-fn committish(
-    input: &str,
-) -> IResult<&str, (Option<String>, Option<Range>), SpecParseError<&str>> {
+fn committish(input: &str) -> IResult<&str, (Option<String>, Option<Range>), SpecParseError<&str>> {
     let (input, hash) = opt(preceded(
         tag("#"),
         alt((

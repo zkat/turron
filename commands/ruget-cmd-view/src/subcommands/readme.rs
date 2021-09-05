@@ -6,7 +6,7 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::miette::{DiagnosticReport, DiagnosticResult as Result};
+use ruget_common::miette::{Report, Result};
 use ruget_package_spec::PackageSpec;
 use ruget_semver::Range;
 
@@ -60,7 +60,7 @@ impl ReadmeCmd {
             let data = client
                 .get_from_nupkg(package_id, &version, &readme)
                 .await
-                .map_err(|err| -> DiagnosticReport {
+                .map_err(|err| -> Report {
                     match err {
                         NuGetApiError::FileNotFound(_, _, _) => {
                             ViewError::ReadmeNotFound(nuspec.metadata.id, version).into()

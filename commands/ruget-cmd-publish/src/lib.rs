@@ -8,7 +8,7 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::miette::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::miette::{Context, IntoDiagnostic, Result};
 
 #[derive(Debug, Clap, RuGetConfigLayer)]
 pub struct PublishCmd {
@@ -38,7 +38,8 @@ impl RuGetCommand for PublishCmd {
             .with_key(self.api_key);
         let body = Body::from_file(&self.nupkgs[0])
             .await
-            .into_diagnostic(&"ruget::publish::bad_file")?;
+            .into_diagnostic()
+            .context("Failed to open provided nupkg")?;
         client.push(body).await?;
         Ok(())
     }

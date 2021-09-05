@@ -85,23 +85,24 @@ pub enum NuGetApiError {
     RegistrationPageNotFound,
 
     /// Got some bad JSON we couldn't parse.
-    #[error("Received some bad JSON from the source. Unable to parse.")]
+    #[error("Received some unexpected JSON from the source. Unable to parse.")]
     #[diagnostic(
         code(ruget::api::bad_json),
+        url("https://example.com"),
         help("This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported."),
     )]
     BadJson {
         source: serde_json::Error,
         url: String,
         json: NamedSource,
-        #[snippet(json, message("JSON context..."))]
+        #[snippet(json, message("JSON context"))]
         snip: (usize, usize),
         #[highlight(snip, label = "here")]
         err_loc: (usize, usize),
     },
 
     /// Got some bad XML we couldn't parse.
-    #[error("Received some bad XML from the source. Unable to parse.")]
+    #[error("Received some unexpected XML from the source. Unable to parse.")]
     #[diagnostic(
         code(ruget::api::bad_xml),
         help("This is a bug. It might be in ruget, or it might be in the source you're using, but it's definitely a bug and should be reported.")

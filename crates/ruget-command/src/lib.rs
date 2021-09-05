@@ -1,4 +1,4 @@
-use ruget_common::miette::DiagnosticResult as Result;
+use ruget_common::miette::Result;
 
 // Re-exports for common command deps:
 pub use async_trait;

@@ -9,7 +9,7 @@ use ruget_command::{
     RuGetCommand,
 };
 use ruget_common::{
-    miette::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{Context, IntoDiagnostic, Result},
     serde_json::{self, json},
 };
 
@@ -44,7 +44,8 @@ impl RuGetCommand for PingCmd {
                 "time": time,
                 "endpoints": client.endpoints,
             }))
-            .into_diagnostic(&"ruget::ping::serialize")?;
+            .into_diagnostic()
+            .context("Failed to serialize JSON ping output.")?;
             println!("{}", output);
         }
         if !self.quiet && !self.json {

@@ -115,12 +115,8 @@ impl ToTokens for RuGetConfigLayer {
 
                 use std::str::FromStr;
 
-                use clap::ArgMatches;
-                use ruget_common::miette::DiagnosticResult;
-                use ruget_config::{RuGetConfig, RuGetConfigLayer};
-
-                impl RuGetConfigLayer for #ident {
-                    fn layer_config(&mut self, args: &ArgMatches, config: &RuGetConfig) -> DiagnosticResult<()> {
+                impl ruget_config::RuGetConfigLayer for #ident {
+                    fn layer_config(&mut self, args: &clap::ArgMatches, config: &ruget_config::RuGetConfig) -> ruget_common::miette::Result<()> {
                         #(#field_defs)*
                         Ok(())
                     }

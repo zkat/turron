@@ -6,7 +6,7 @@ use ruget_command::{
     ruget_config::{self, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::miette::{DiagnosticReport, DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::miette::{Context, IntoDiagnostic, Report, Result};
 use ruget_package_spec::PackageSpec;
 use ruget_semver::Range;
 
@@ -66,7 +66,7 @@ impl IconCmd {
             let data = client
                 .get_from_nupkg(package_id, &version, &icon)
                 .await
-                .map_err(|err| -> DiagnosticReport {
+                .map_err(|err| -> Report {
                     match err {
                         NuGetApiError::FileNotFound(_, _, _) => {
                             ViewError::IconNotFound(nuspec.metadata.id, version).into()
@@ -80,9 +80,12 @@ impl IconCmd {
                 height: Some(self.height),
                 ..Default::default()
             };
-            let img =
-                image::load_from_memory(&data).into_diagnostic(&"ruget::view::icon::image_load")?;
-            viuer::print(&img, &conf).into_diagnostic(&"ruget::view::icon::image_print")?;
+            let img = image::load_from_memory(&data)
+                .into_diagnostic()
+                .context("Failed to load image into memory")?;
+            viuer::print(&img, &conf)
+                .into_diagnostic()
+                .context("Failed to print image to terminal")?;
             Ok(())
         } else {
             Err(ViewError::IconNotFound(nuspec.metadata.id, version).into())

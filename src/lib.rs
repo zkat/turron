@@ -9,7 +9,7 @@ use ruget_command::{
     log,
     ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions},
 };
-use ruget_common::miette::{DiagnosticResult as Result, IntoDiagnostic};
+use ruget_common::miette::{Context, IntoDiagnostic, Result};
 
 use ruget_cmd_ping::PingCmd;
 use ruget_cmd_publish::PublishCmd;
@@ -110,7 +110,8 @@ impl RuGet {
         ruget.layer_config(&matches, &cfg)?;
         ruget
             .setup_logging()
-            .into_diagnostic(&"ruget::load::logging")?;
+            .into_diagnostic()
+            .context("Failed to set up logging")?;
         ruget.execute().await?;
         log::info!("Ran in {}s", start.elapsed().as_millis() as f32 / 1000.0);
         Ok(())

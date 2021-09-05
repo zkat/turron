@@ -5,7 +5,7 @@ use ruget_command::{
     ruget_config::{RuGetConfig, RuGetConfigLayer},
     RuGetCommand,
 };
-use ruget_common::miette::DiagnosticResult as Result;
+use ruget_common::miette::Result;
 
 use subcommands::{IconCmd, ReadmeCmd, SummaryCmd, VersionsCmd};
 

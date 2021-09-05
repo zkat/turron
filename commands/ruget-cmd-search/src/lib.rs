@@ -10,7 +10,7 @@ use ruget_command::{
     RuGetCommand,
 };
 use ruget_common::{
-    miette::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{Context, IntoDiagnostic, Result},
     serde_json,
 };
 
@@ -59,7 +59,8 @@ impl RuGetCommand for SearchCmd {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&response)
-                    .into_diagnostic(&"ruget::search::serialize")?
+                    .into_diagnostic()
+                    .context("Failed to serialize response back into JSON")?
             );
         } else if !self.quiet {
             let headers = vec!["id", "version", "description"]

@@ -9,11 +9,11 @@ use ruget_command::{
 };
 use ruget_common::{
     chrono_humanize::HumanTime,
-    miette::{DiagnosticResult as Result, IntoDiagnostic},
+    miette::{Context, IntoDiagnostic, Result},
     serde_json,
 };
 use ruget_package_spec::PackageSpec;
-use ruget_semver::{Version, Range};
+use ruget_semver::{Range, Version};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
 use crate::error::ViewError;
@@ -69,7 +69,8 @@ impl SummaryCmd {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&leaf)
-                    .into_diagnostic(&"ruget::view::json_serialization")?
+                    .into_diagnostic()
+                    .context("Failed to stringify package data back to JSON")?
             );
         } else if !self.quiet {
             self.print_package_details(&index, &leaf);
