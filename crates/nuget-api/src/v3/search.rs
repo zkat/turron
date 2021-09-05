@@ -1,5 +1,6 @@
 use ruget_common::{
     serde::{Deserialize, Serialize},
+    serde_with,
     surf::{self, StatusCode},
 };
 
@@ -82,6 +83,7 @@ pub struct SearchResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde_with::skip_serializing_none]
 pub struct SearchResult {
     pub id: String,
     pub version: String,

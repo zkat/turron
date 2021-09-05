@@ -3,6 +3,7 @@ use ruget_common::{
     chrono::{DateTime, Utc},
     serde::{Deserialize, Serialize},
     serde_json,
+    serde_with,
     surf::{self, StatusCode, Url},
 };
 use ruget_semver::{Range, Version};
@@ -105,39 +106,25 @@ pub struct RegistrationLeaf {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde_with::skip_serializing_none]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogEntry {
     pub id: String,
     pub version: Version,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub authors: Option<Authors>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub dependency_groups: Option<Vec<DependencyGroup>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub deprecation: Option<PackageDeprecation>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub icon_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub license_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub license_expression: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub listed: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub project_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub published: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub require_license_acceptance: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Tags>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub vulnerabilities: Option<Vec<Vulnerability>>,
 }
 
@@ -157,18 +144,18 @@ pub enum Tags {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde_with::skip_serializing_none]
 pub struct DependencyGroup {
     pub target_framework: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub dependencies: Option<Vec<Dependency>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde_with::skip_serializing_none]
 pub struct Dependency {
     pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub range: Option<Range>, // TODO: what type is this, actually?...
+    pub range: Option<Range>,
 }
 
 impl PartialOrd for Dependency {
@@ -185,9 +172,9 @@ impl Ord for Dependency {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde_with::skip_serializing_none]
 pub struct PackageDeprecation {
     pub reasons: Vec<DeprecationReason>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
 
