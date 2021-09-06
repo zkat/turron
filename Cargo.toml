@@ -1,7 +1,14 @@
 [package]
-name = "ruget"
-version = "0.1.0"
+name = "turron"
+version = "0.0.0"
+authors = ["Kat Marchán <kzm@zkat.tech>"]
+description = "Rusty NuGet Client and Toolkit"
+categories = ["rust-patterns"]
+repository = "https://github.com/zkat/turron"
+license = "Apache-2.0"
+readme = "README.md"
 edition = "2018"
+exclude = ["images/", "tests/", "dotnet-tool/", "crates/", "commands/"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,16 +21,16 @@ members = [
 
 [dependencies]
 # Commands
-ruget-cmd-ping = { path = "./commands/ruget-cmd-ping" }
-ruget-cmd-publish = { path = "./commands/ruget-cmd-publish" }
-ruget-cmd-relist = { path = "./commands/ruget-cmd-relist" }
-ruget-cmd-search = { path = "./commands/ruget-cmd-search" }
-ruget-cmd-unlist = { path = "./commands/ruget-cmd-unlist" }
-ruget-cmd-view = { path = "./commands/ruget-cmd-view" }
+turron-cmd-ping = { path = "./commands/turron-cmd-ping" }
+turron-cmd-publish = { path = "./commands/turron-cmd-publish" }
+turron-cmd-relist = { path = "./commands/turron-cmd-relist" }
+turron-cmd-search = { path = "./commands/turron-cmd-search" }
+turron-cmd-unlist = { path = "./commands/turron-cmd-unlist" }
+turron-cmd-view = { path = "./commands/turron-cmd-view" }
 
 # Workspace Deps
-ruget-command = { path = "./crates/ruget-command" }
-ruget-common = { path = "./crates/ruget-common" }
+turron-command = { path = "./crates/turron-command" }
+turron-common = { path = "./crates/turron-common" }
 
 # Regular deps
 fern = "0.6.0"

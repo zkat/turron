@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
 
-namespace ruget
+namespace Turron
 {
     class Program
     {
@@ -18,7 +18,7 @@ namespace ruget
             // process.StartInfo.FileName = "cargo";
             // process.StartInfo.ArgumentList.Add("run");
             // process.StartInfo.ArgumentList.Add("--bin");
-            // process.StartInfo.ArgumentList.Add("ruget");
+            // process.StartInfo.ArgumentList.Add("turron");
             // process.StartInfo.ArgumentList.Add("--");
             // foreach (var arg in args)
             // {

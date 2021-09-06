@@ -6,10 +6,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ruget-common = { path = "../ruget-common" }
-ruget-semver = { path = "../ruget-semver" }
+turron-common = { path = "../turron-common" }
+turron-semver = { path = "../turron-semver" }
 # NOTE: This is some duplication because serde insists on being a toplevel
-# dep. You should only use this crate from `ruget-common` either way, and this
+# dep. You should only use this crate from `turron-common` either way, and this
 # must be kept in sync with the version there.
 serde = "1.0.126"
 zip = "0.5.13"

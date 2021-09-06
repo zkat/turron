@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Turron</PackageId>
+    <PackageVersion>0.0.0</PackageVersion>
+    <Authors>Kat Marchán</Authors>
+    <Copyright>Copyright (c) Kat Marchán 2021</Copyright>
+    <Description>An alternative NuGet client.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/zkat/turron</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/zkat/turron</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>package-manager</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>turron</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="../target/debug/turron.exe"/>
+  </ItemGroup>
+
+</Project>

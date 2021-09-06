@@ -1,4 +1,4 @@
-# ruget
+# turron
 
 It's a [NuGet](https://nuget.org) client built in Rust. It's not really meant
 to replace existing nuget clients. It's more of a playground for experimenting

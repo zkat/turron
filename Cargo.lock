@@ -1602,9 +1602,9 @@ dependencies = [
 name = "nuget-api"
 version = "0.1.0"
 dependencies = [
- "ruget-common",
- "ruget-semver",
  "serde 1.0.127",
+ "turron-common",
+ "turron-semver",
  "zip",
 ]
 
@@ -2074,175 +2074,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "ruget"
-version = "0.1.0"
-dependencies = [
- "directories",
- "embed-resource",
- "fern",
- "ruget-cmd-ping",
- "ruget-cmd-publish",
- "ruget-cmd-relist",
- "ruget-cmd-search",
- "ruget-cmd-unlist",
- "ruget-cmd-view",
- "ruget-command",
- "ruget-common",
-]
-
-[[package]]
-name = "ruget-cmd-ping"
-version = "0.1.0"
-dependencies = [
- "nuget-api",
- "ruget-command",
- "ruget-common",
-]
-
-[[package]]
-name = "ruget-cmd-publish"
-version = "0.1.0"
-dependencies = [
- "nuget-api",
- "ruget-command",
- "ruget-common",
-]
-
-[[package]]
-name = "ruget-cmd-relist"
-version = "0.1.0"
-dependencies = [
- "nuget-api",
- "ruget-command",
- "ruget-common",
-]
-
-[[package]]
-name = "ruget-cmd-search"
-version = "0.1.0"
-dependencies = [
- "nu-ansi-term",
- "nu-table",
- "nuget-api",
- "ruget-command",
- "ruget-common",
- "term_size",
-]
-
-[[package]]
-name = "ruget-cmd-unlist"
-version = "0.1.0"
-dependencies = [
- "nuget-api",
- "ruget-command",
- "ruget-common",
-]
-
-[[package]]
-name = "ruget-cmd-view"
-version = "0.1.0"
-dependencies = [
- "image",
- "nu-ansi-term",
- "nu-table",
- "nuget-api",
- "ruget-command",
- "ruget-common",
- "ruget-package-spec",
- "ruget-pick-version",
- "ruget-semver",
- "term_grid",
- "term_size",
- "termimad",
- "viuer",
-]
-
-[[package]]
-name = "ruget-command"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "clap",
- "log",
- "owo-colors",
- "ruget-common",
- "ruget-config",
-]
-
-[[package]]
-name = "ruget-common"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "chrono-humanize",
- "miette",
- "quick-xml",
- "serde 1.0.127",
- "serde_json",
- "serde_with",
- "smol",
- "surf",
- "thiserror",
-]
-
-[[package]]
-name = "ruget-config"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "config",
- "pretty_assertions",
- "ruget-common",
- "ruget-config-derive",
- "serde 1.0.127",
- "tempfile",
-]
-
-[[package]]
-name = "ruget-config-derive"
-version = "0.1.0"
-dependencies = [
- "darling 0.10.2",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "ruget-package-spec"
-version = "0.1.0"
-dependencies = [
- "bytecount",
- "nom 6.2.1",
- "percent-encoding",
- "ruget-common",
- "ruget-semver",
- "url",
-]
-
-[[package]]
-name = "ruget-pick-version"
-version = "0.1.0"
-dependencies = [
- "ruget-common",
- "ruget-semver",
-]
-
-[[package]]
-name = "ruget-semver"
-version = "0.1.0"
-dependencies = [
- "bytecount",
- "nom 6.2.1",
- "pretty_assertions",
- "ruget-common",
- "serde 1.0.127",
- "serde_derive",
- "serde_json",
 ]
 
 [[package]]
@@ -2864,6 +2695,175 @@ checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
 dependencies = [
  "pin-project",
  "tracing",
+]
+
+[[package]]
+name = "turron"
+version = "0.0.0"
+dependencies = [
+ "directories",
+ "embed-resource",
+ "fern",
+ "turron-cmd-ping",
+ "turron-cmd-publish",
+ "turron-cmd-relist",
+ "turron-cmd-search",
+ "turron-cmd-unlist",
+ "turron-cmd-view",
+ "turron-command",
+ "turron-common",
+]
+
+[[package]]
+name = "turron-cmd-ping"
+version = "0.1.0"
+dependencies = [
+ "nuget-api",
+ "turron-command",
+ "turron-common",
+]
+
+[[package]]
+name = "turron-cmd-publish"
+version = "0.1.0"
+dependencies = [
+ "nuget-api",
+ "turron-command",
+ "turron-common",
+]
+
+[[package]]
+name = "turron-cmd-relist"
+version = "0.1.0"
+dependencies = [
+ "nuget-api",
+ "turron-command",
+ "turron-common",
+]
+
+[[package]]
+name = "turron-cmd-search"
+version = "0.1.0"
+dependencies = [
+ "nu-ansi-term",
+ "nu-table",
+ "nuget-api",
+ "term_size",
+ "turron-command",
+ "turron-common",
+]
+
+[[package]]
+name = "turron-cmd-unlist"
+version = "0.1.0"
+dependencies = [
+ "nuget-api",
+ "turron-command",
+ "turron-common",
+]
+
+[[package]]
+name = "turron-cmd-view"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "nu-ansi-term",
+ "nu-table",
+ "nuget-api",
+ "term_grid",
+ "term_size",
+ "termimad",
+ "turron-command",
+ "turron-common",
+ "turron-package-spec",
+ "turron-pick-version",
+ "turron-semver",
+ "viuer",
+]
+
+[[package]]
+name = "turron-command"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "clap",
+ "log",
+ "owo-colors",
+ "turron-common",
+ "turron-config",
+]
+
+[[package]]
+name = "turron-common"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "chrono-humanize",
+ "miette",
+ "quick-xml",
+ "serde 1.0.127",
+ "serde_json",
+ "serde_with",
+ "smol",
+ "surf",
+ "thiserror",
+]
+
+[[package]]
+name = "turron-config"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "config",
+ "pretty_assertions",
+ "serde 1.0.127",
+ "tempfile",
+ "turron-common",
+ "turron-config-derive",
+]
+
+[[package]]
+name = "turron-config-derive"
+version = "0.1.0"
+dependencies = [
+ "darling 0.10.2",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "turron-package-spec"
+version = "0.1.0"
+dependencies = [
+ "bytecount",
+ "nom 6.2.1",
+ "percent-encoding",
+ "turron-common",
+ "turron-semver",
+ "url",
+]
+
+[[package]]
+name = "turron-pick-version"
+version = "0.1.0"
+dependencies = [
+ "turron-common",
+ "turron-semver",
+]
+
+[[package]]
+name = "turron-semver"
+version = "0.1.0"
+dependencies = [
+ "bytecount",
+ "nom 6.2.1",
+ "pretty_assertions",
+ "serde 1.0.127",
+ "serde_derive",
+ "serde_json",
+ "turron-common",
 ]
 
 [[package]]

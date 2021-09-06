@@ -1,0 +1,9 @@
+[package]
+name = "turron-pick-version"
+version = "0.1.0"
+authors = ["Kat Marchán <kzm@zkat.tech>"]
+edition = "2018"
+
+[dependencies]
+turron-common = { path = "../turron-common" }
+turron-semver = {path = "../turron-semver" }

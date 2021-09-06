@@ -1,4 +1,4 @@
-use ruget_common::{
+use turron_common::{
     serde::{Deserialize, Serialize},
     serde_with,
     surf::{self, StatusCode},

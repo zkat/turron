@@ -1,0 +1,14 @@
+[package]
+name = "turron-cmd-search"
+version = "0.1.0"
+authors = ["Kat Marchán <kzm@zkat.tech>"]
+edition = "2018"
+
+[dependencies]
+nuget-api = { path = "../../crates/nuget-api" }
+turron-command = { path = "../../crates/turron-command" }
+turron-common = { path = "../../crates/turron-common" }
+
+nu-table = "0.34.0"
+nu-ansi-term = "0.34.0"
+term_size = "0.3.2"

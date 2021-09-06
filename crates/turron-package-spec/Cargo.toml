@@ -1,0 +1,14 @@
+[package]
+name = "turron-package-spec"
+version = "0.1.0"
+authors = ["Kat Marchán <kzm@zkat.tech>"]
+edition = "2018"
+
+[dependencies]
+turron-common = { path = "../turron-common" }
+turron-semver = { path = "../turron-semver" }
+
+url = "2.1.0"
+nom = "6.0.0"
+percent-encoding = "2.1.0"
+bytecount = "0.6.0"

@@ -1,10 +1,10 @@
-pub use ruget_common::surf::Body;
-use ruget_common::{
+pub use turron_common::surf::Body;
+use turron_common::{
     serde::{Deserialize, Serialize},
     serde_json,
     surf::{self, Client, Url},
 };
-use ruget_semver::Version;
+use turron_semver::Version;
 
 use crate::errors::NuGetApiError;
 

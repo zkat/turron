@@ -1,14 +1,14 @@
 use std::io::{Cursor, Read};
 use std::sync::Arc;
 
-pub use ruget_common::surf::Body;
-use ruget_common::{
+pub use turron_common::surf::Body;
+use turron_common::{
     quick_xml,
     serde::{Deserialize, Serialize},
     serde_json, smol,
     surf::{self, StatusCode, Url},
 };
-use ruget_semver::Version;
+use turron_semver::Version;
 use zip::ZipArchive;
 
 use crate::errors::NuGetApiError;

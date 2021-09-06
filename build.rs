@@ -1,3 +1,3 @@
 fn main() {
-    embed_resource::compile("ruget-manifest.rc");
+    embed_resource::compile("turron-manifest.rc");
 }

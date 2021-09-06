@@ -2,21 +2,21 @@ use std::env;
 use std::path::PathBuf;
 
 use directories::ProjectDirs;
-use ruget_command::RuGetCommand;
-use ruget_command::{
+use turron_command::TurronCommand;
+use turron_command::{
     async_trait::async_trait,
     clap::{self, ArgMatches, Clap, FromArgMatches, IntoApp},
     log,
-    ruget_config::{RuGetConfig, RuGetConfigLayer, RuGetConfigOptions},
+    turron_config::{TurronConfig, TurronConfigLayer, TurronConfigOptions},
 };
-use ruget_common::miette::{Context, IntoDiagnostic, Result};
+use turron_common::miette::{Context, IntoDiagnostic, Result};
 
-use ruget_cmd_ping::PingCmd;
-use ruget_cmd_publish::PublishCmd;
-use ruget_cmd_relist::RelistCmd;
-use ruget_cmd_search::SearchCmd;
-use ruget_cmd_unlist::UnlistCmd;
-use ruget_cmd_view::ViewCmd;
+use turron_cmd_ping::PingCmd;
+use turron_cmd_publish::PublishCmd;
+use turron_cmd_relist::RelistCmd;
+use turron_cmd_search::SearchCmd;
+use turron_cmd_unlist::UnlistCmd;
+use turron_cmd_view::ViewCmd;
 
 #[derive(Debug, Clap)]
 #[clap(
@@ -28,7 +28,7 @@ use ruget_cmd_view::ViewCmd;
     setting = clap::AppSettings::DeriveDisplayOrder,
     setting = clap::AppSettings::InferSubcommands,
 )]
-pub struct RuGet {
+pub struct Turron {
     #[clap(global = true, long = "root", about = "Package path to operate on.")]
     root: Option<PathBuf>,
     #[clap(global = true, about = "File to read configuration values from.", long)]
@@ -52,15 +52,15 @@ pub struct RuGet {
     )]
     api_key: Option<String>,
     #[clap(subcommand)]
-    subcommand: RuGetCmd,
+    subcommand: TurronCmd,
 }
 
-impl RuGet {
+impl Turron {
     fn setup_logging(&self) -> std::result::Result<(), fern::InitError> {
         let fern = fern::Dispatch::new()
             .format(|out, message, record| {
                 out.finish(format_args!(
-                    "ruget [{}][{}] {}",
+                    "turron [{}][{}] {}",
                     record.level(),
                     record.target(),
                     message,
@@ -76,8 +76,8 @@ impl RuGet {
                     .chain(std::io::stderr()),
             );
         // TODO: later
-        // if let Some(logfile) = ProjectDirs::from("", "", "ruget")
-        //     .map(|d| d.data_dir().to_owned().join(format!("ruget-debug-{}.log", chrono::Local::now().to_rfc3339())))
+        // if let Some(logfile) = ProjectDirs::from("", "", "turron")
+        //     .map(|d| d.data_dir().to_owned().join(format!("turron-debug-{}.log", chrono::Local::now().to_rfc3339())))
         // {
         //     fern = fern.chain(
         //         fern::Dispatch::new()
@@ -91,35 +91,35 @@ impl RuGet {
 
     pub async fn load() -> Result<()> {
         let start = std::time::Instant::now();
-        let clp = RuGet::into_app();
+        let clp = Turron::into_app();
         let matches = clp.get_matches();
-        let mut ruget = RuGet::from_arg_matches(&matches);
-        let cfg = if let Some(file) = &ruget.config {
-            RuGetConfigOptions::new()
+        let mut turron = Turron::from_arg_matches(&matches);
+        let cfg = if let Some(file) = &turron.config {
+            TurronConfigOptions::new()
                 .global_config_file(Some(file.clone()))
                 .load()?
         } else {
-            RuGetConfigOptions::new()
+            TurronConfigOptions::new()
                 .global_config_file(
-                    ProjectDirs::from("", "", "ruget")
-                        .map(|d| d.config_dir().to_owned().join("rugetrc.toml")),
+                    ProjectDirs::from("", "", "turron")
+                        .map(|d| d.config_dir().to_owned().join("turronrc.toml")),
                 )
-                .pkg_root(ruget.root.clone())
+                .pkg_root(turron.root.clone())
                 .load()?
         };
-        ruget.layer_config(&matches, &cfg)?;
-        ruget
+        turron.layer_config(&matches, &cfg)?;
+        turron
             .setup_logging()
             .into_diagnostic()
             .context("Failed to set up logging")?;
-        ruget.execute().await?;
+        turron.execute().await?;
         log::info!("Ran in {}s", start.elapsed().as_millis() as f32 / 1000.0);
         Ok(())
     }
 }
 
 #[derive(Debug, Clap)]
-pub enum RuGetCmd {
+pub enum TurronCmd {
     #[clap(
         about = "Ping a source",
         setting = clap::AppSettings::ColoredHelp,
@@ -165,39 +165,39 @@ pub enum RuGetCmd {
 }
 
 #[async_trait]
-impl RuGetCommand for RuGet {
+impl TurronCommand for Turron {
     async fn execute(self) -> Result<()> {
         log::info!("Running command: {:#?}", self.subcommand);
         match self.subcommand {
-            RuGetCmd::Ping(ping) => ping.execute().await,
-            RuGetCmd::Publish(publish) => publish.execute().await,
-            RuGetCmd::Relist(relist) => relist.execute().await,
-            RuGetCmd::Search(search) => search.execute().await,
-            RuGetCmd::Unlist(unlist) => unlist.execute().await,
-            RuGetCmd::View(view) => view.execute().await,
+            TurronCmd::Ping(ping) => ping.execute().await,
+            TurronCmd::Publish(publish) => publish.execute().await,
+            TurronCmd::Relist(relist) => relist.execute().await,
+            TurronCmd::Search(search) => search.execute().await,
+            TurronCmd::Unlist(unlist) => unlist.execute().await,
+            TurronCmd::View(view) => view.execute().await,
         }
     }
 }
 
-impl RuGetConfigLayer for RuGet {
-    fn layer_config(&mut self, args: &ArgMatches, conf: &RuGetConfig) -> Result<()> {
+impl TurronConfigLayer for Turron {
+    fn layer_config(&mut self, args: &ArgMatches, conf: &TurronConfig) -> Result<()> {
         match self.subcommand {
-            RuGetCmd::Ping(ref mut ping) => {
+            TurronCmd::Ping(ref mut ping) => {
                 ping.layer_config(args.subcommand_matches("ping").unwrap(), conf)
             }
-            RuGetCmd::Publish(ref mut publish) => {
+            TurronCmd::Publish(ref mut publish) => {
                 publish.layer_config(args.subcommand_matches("publish").unwrap(), conf)
             }
-            RuGetCmd::Relist(ref mut relist) => {
+            TurronCmd::Relist(ref mut relist) => {
                 relist.layer_config(args.subcommand_matches("relist").unwrap(), conf)
             }
-            RuGetCmd::Search(ref mut search) => {
+            TurronCmd::Search(ref mut search) => {
                 search.layer_config(args.subcommand_matches("search").unwrap(), conf)
             }
-            RuGetCmd::Unlist(ref mut unlist) => {
+            TurronCmd::Unlist(ref mut unlist) => {
                 unlist.layer_config(args.subcommand_matches("unlist").unwrap(), conf)
             }
-            RuGetCmd::View(ref mut view) => {
+            TurronCmd::View(ref mut view) => {
                 view.layer_config(args.subcommand_matches("view").unwrap(), conf)
             }
         }
