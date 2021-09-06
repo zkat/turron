@@ -21,6 +21,7 @@ members = [
 
 [dependencies]
 # Commands
+turron-cmd-pack = { path = "./commands/turron-cmd-pack" }
 turron-cmd-ping = { path = "./commands/turron-cmd-ping" }
 turron-cmd-publish = { path = "./commands/turron-cmd-publish" }
 turron-cmd-relist = { path = "./commands/turron-cmd-relist" }

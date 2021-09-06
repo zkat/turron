@@ -11,6 +11,7 @@ use turron_command::{
 };
 use turron_common::miette::{Context, IntoDiagnostic, Result};
 
+use turron_cmd_pack::PackCmd;
 use turron_cmd_ping::PingCmd;
 use turron_cmd_publish::PublishCmd;
 use turron_cmd_relist::RelistCmd;
@@ -121,6 +122,13 @@ impl Turron {
 #[derive(Debug, Clap)]
 pub enum TurronCmd {
     #[clap(
+        about = "Pack a project",
+        setting = clap::AppSettings::ColoredHelp,
+        setting = clap::AppSettings::DisableHelpSubcommand,
+        setting = clap::AppSettings::DeriveDisplayOrder,
+    )]
+    Pack(PackCmd),
+    #[clap(
         about = "Ping a source",
         setting = clap::AppSettings::ColoredHelp,
         setting = clap::AppSettings::DisableHelpSubcommand,
@@ -169,6 +177,7 @@ impl TurronCommand for Turron {
     async fn execute(self) -> Result<()> {
         log::info!("Running command: {:#?}", self.subcommand);
         match self.subcommand {
+            TurronCmd::Pack(pack) => pack.execute().await,
             TurronCmd::Ping(ping) => ping.execute().await,
             TurronCmd::Publish(publish) => publish.execute().await,
             TurronCmd::Relist(relist) => relist.execute().await,
@@ -182,6 +191,9 @@ impl TurronCommand for Turron {
 impl TurronConfigLayer for Turron {
     fn layer_config(&mut self, args: &ArgMatches, conf: &TurronConfig) -> Result<()> {
         match self.subcommand {
+            TurronCmd::Pack(ref mut pack) => {
+                pack.layer_config(args.subcommand_matches("pack").unwrap(), conf)
+            }
             TurronCmd::Ping(ref mut ping) => {
                 ping.layer_config(args.subcommand_matches("ping").unwrap(), conf)
             }

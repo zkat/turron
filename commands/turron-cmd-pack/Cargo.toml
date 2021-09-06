@@ -1,0 +1,10 @@
+[package]
+name = "turron-cmd-pack"
+version = "0.1.0"
+authors = ["Kat Marchán <kzm@zkat.tech>"]
+edition = "2018"
+
+[dependencies]
+turron-command = { path = "../../crates/turron-command" }
+turron-common = { path = "../../crates/turron-common" }
+turron-dotnet = { path = "../../crates/turron-dotnet" }
