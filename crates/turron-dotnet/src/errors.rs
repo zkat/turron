@@ -1,5 +1,5 @@
 use turron_common::{
-    miette::{self, Diagnostic},
+    miette::{self, Diagnostic, Report},
     thiserror::{self, Error},
 };
 
@@ -16,7 +16,23 @@ pub enum DotnetError {
     #[diagnostic(code(turron::dotnet::cli_failed))]
     DotnetFailed(#[from] std::io::Error),
 
-    #[error("Pack failed")]
+    #[error("Pack failed.\n{}", .0.iter().map(|e| format!("{:?}", Report::from(e.clone()))).collect::<Vec<_>>().join("\n"))]
     #[diagnostic(code(turron::dotnet::pack_failed))]
-    PackFailed,
+    PackFailed(Vec<MsBuildError>),
+}
+
+#[derive(Error, Debug, Clone)]
+#[error("{message}")]
+pub struct MsBuildError {
+    pub file: String,
+    pub line: Option<usize>,
+    pub column: Option<usize>,
+    pub code: String,
+    pub message: String,
+}
+
+impl Diagnostic for MsBuildError {
+    fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        Some(Box::new(&self.code))
+    }
 }

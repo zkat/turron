@@ -21,6 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- <PackageReference Include="Directories.Net" Version="2.1.0" /> -->
     <EmbeddedResource Include="../target/debug/turron.exe"/>
   </ItemGroup>
 

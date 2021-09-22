@@ -27,8 +27,20 @@ impl Diagnostic for PackageSpecError {
         self.kind.help()
     }
 
-    fn snippets(&self) -> Option<Box<dyn Iterator<Item = miette::DiagnosticSnippet> + '_>> {
-        self.kind.snippets()
+    fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        self.kind.url()
+    }
+
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        self.kind.source_code()
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        self.kind.labels()
+    }
+
+    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+        self.kind.related()
     }
 }
 

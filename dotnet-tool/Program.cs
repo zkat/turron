@@ -10,6 +10,7 @@ namespace Turron
     {
         static void Main(string[] args)
         {
+            asdfasdf;
             string[] resNames = Assembly.GetExecutingAssembly().GetManifestResourceNames();
             foreach (string resName in resNames)
                 Console.WriteLine(resName);

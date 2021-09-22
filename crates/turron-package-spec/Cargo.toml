@@ -9,6 +9,6 @@ turron-common = { path = "../turron-common" }
 turron-semver = { path = "../turron-semver" }
 
 url = "2.1.0"
-nom = "6.0.0"
+nom = "7.0.0"
 percent-encoding = "2.1.0"
 bytecount = "0.6.0"

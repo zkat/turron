@@ -1,4 +1,5 @@
 use nuget_api::v3::{NuGetClient, RegistrationIndex, RegistrationLeaf, Tags};
+use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
@@ -14,7 +15,6 @@ use turron_common::{
 };
 use turron_package_spec::PackageSpec;
 use turron_semver::{Range, Version};
-use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 
 use crate::error::ViewError;
 
@@ -63,7 +63,8 @@ impl SummaryCmd {
             .ok_or_else(|| ViewError::VersionNotFound(package_id.into(), requested.clone()))?;
         let (index, leaf) = self
             .find_version(client, package_id, requested, &version)
-            .await?;
+            .await
+            .context("Failed to find desired version")?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(

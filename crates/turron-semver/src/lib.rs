@@ -14,7 +14,7 @@ use nom::sequence::{preceded, tuple};
 use nom::{Err, IResult};
 
 use turron_common::{
-    miette::{self, Diagnostic, DiagnosticSnippet},
+    miette::{self, Diagnostic},
     serde::de::{self, Deserialize, Deserializer, Visitor},
     serde::ser::{Serialize, Serializer},
     thiserror::{self, Error},
@@ -110,19 +110,8 @@ impl Diagnostic for SemverError {
         self.kind.help()
     }
 
-    fn snippets(
-        &self,
-    ) -> Option<Box<dyn Iterator<Item = turron_common::miette::DiagnosticSnippet> + '_>> {
-        Some(Box::new(
-            vec![DiagnosticSnippet {
-                message: None, // TODO
-                source: &self.input,
-                // TODO: Don't display the entire thing if it might be too long.
-                context: (0, self.input.len()).into(),
-                highlights: Some(vec![(Some("idk".into()), (self.offset, 1).into())]),
-            }]
-            .into_iter(),
-        ))
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = turron_common::miette::LabeledSpan> + '_>> {
+        self.kind.labels()
     }
 }
 

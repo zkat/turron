@@ -1,4 +1,4 @@
-use std::{cmp, io, sync::Arc};
+use std::{io, sync::Arc};
 
 use turron_common::{
     miette::{self, Diagnostic, NamedSource, SourceOffset},
@@ -94,10 +94,9 @@ pub enum NuGetApiError {
     BadJson {
         source: serde_json::Error,
         url: String,
+        #[source_code]
         json: NamedSource,
-        #[snippet(json, message("JSON context"))]
-        snip: (usize, usize),
-        #[highlight(snip, label = "here")]
+        #[label("here")]
         err_loc: (usize, usize),
     },
 
@@ -136,16 +135,11 @@ impl NuGetApiError {
     pub fn from_json_err(err: serde_json::Error, url: String, json: String) -> Self {
         // The offset of the error itself
         let err_offset = SourceOffset::from_location(&json, err.line(), err.column());
-        let len = json.len();
         Self::BadJson {
             source: err,
             url: url.clone(),
             json: NamedSource::new(url, json),
-            snip: (
-                err_offset.offset() - cmp::min(40, err_offset.offset()),
-                cmp::min(80, len - err_offset.offset()),
-            ),
-            err_loc: (err_offset.offset(), 1),
+            err_loc: (err_offset.offset(), 0),
         }
     }
 }
