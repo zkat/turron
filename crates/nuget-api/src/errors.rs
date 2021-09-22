@@ -1,4 +1,4 @@
-use std::{io, sync::Arc};
+use std::{cmp, io, sync::Arc};
 
 use turron_common::{
     miette::{self, Diagnostic, NamedSource, SourceOffset},
@@ -133,13 +133,20 @@ pub enum NuGetApiError {
 
 impl NuGetApiError {
     pub fn from_json_err(err: serde_json::Error, url: String, json: String) -> Self {
-        // The offset of the error itself
+        // These json strings can get VERY LONG and miette doesn't (yet?)
+        // support any "windowing" mechanism for displaying stuff, so we have
+        // to manually shorten the string to only the relevant bits and
+        // translate the spans accordingly.
         let err_offset = SourceOffset::from_location(&json, err.line(), err.column());
+        let json_len = json.len();
+        let local_offset = err_offset.offset().saturating_sub(40);
+        let local_len = cmp::min(40, json_len - err_offset.offset());
+        let snipped_json = json[local_offset..err_offset.offset() + local_len].to_string();
         Self::BadJson {
             source: err,
             url: url.clone(),
-            json: NamedSource::new(url, json),
-            err_loc: (err_offset.offset(), 0),
+            json: NamedSource::new(url, snipped_json),
+            err_loc: (err_offset.offset() - local_offset, 0),
         }
     }
 }

@@ -1458,7 +1458,7 @@ dependencies = [
 [[package]]
 name = "miette"
 version = "3.0.1-alpha.0"
-source = "git+https://github.com/zkat/miette?branch=release/3.0.0#25e434a2cec93e41f020372dedcf395adb2564de"
+source = "git+https://github.com/zkat/miette?branch=release/3.0.0#e02965787b5e6206dad46556a50edae578449789"
 dependencies = [
  "atty",
  "backtrace",
@@ -1478,7 +1478,7 @@ dependencies = [
 [[package]]
 name = "miette-derive"
 version = "3.0.0-alpha.0"
-source = "git+https://github.com/zkat/miette?branch=release/3.0.0#25e434a2cec93e41f020372dedcf395adb2564de"
+source = "git+https://github.com/zkat/miette?branch=release/3.0.0#e02965787b5e6206dad46556a50edae578449789"
 dependencies = [
  "proc-macro2",
  "quote",
