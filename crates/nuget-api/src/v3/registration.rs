@@ -111,7 +111,6 @@ pub struct RegistrationLeaf {
 pub struct CatalogEntry {
     pub id: String,
     pub version: Version,
-    pub foo: String,
     pub authors: Option<Authors>,
     pub dependency_groups: Option<Vec<DependencyGroup>>,
     pub deprecation: Option<PackageDeprecation>,
