@@ -299,8 +299,8 @@ pub struct NuSpecDependency {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NuSpecFrameworkAssembly {
-    pub assembly_name: String,
-    pub target_framework: String,
+    pub assembly_name: Option<String>,
+    pub target_framework: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

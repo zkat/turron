@@ -2,8 +2,7 @@ pub use turron_common::surf::Body;
 use turron_common::{
     chrono::{DateTime, Utc},
     serde::{Deserialize, Serialize},
-    serde_json,
-    serde_with,
+    serde_json, serde_with,
     surf::{self, StatusCode, Url},
 };
 use turron_semver::{Range, Version};
@@ -90,7 +89,7 @@ pub struct RegistrationIndex {
 pub struct RegistrationPage {
     #[serde(rename = "@id")]
     pub id: String,
-    pub parent: String,
+    pub parent: Option<String>,
     /// The number of registration leaves in the page.
     pub count: usize,
     pub items: Option<Vec<RegistrationLeaf>>,
