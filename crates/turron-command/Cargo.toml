@@ -13,4 +13,4 @@ clap = { git = "https://github.com/zkat/clap" }
 log = "0.4.11"
 turron-config = { path = "../../crates/turron-config" }
 owo-colors = "2.0.0"
-indicatif = "0.16.2"
+indicatif = { version = "0.16.2" }

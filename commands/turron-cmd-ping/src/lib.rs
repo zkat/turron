@@ -1,9 +1,10 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use nuget_api::v3::NuGetClient;
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
+    indicatif::ProgressBar,
     log,
     turron_config::TurronConfigLayer,
     TurronCommand,
@@ -11,6 +12,7 @@ use turron_command::{
 use turron_common::{
     miette::{Context, IntoDiagnostic, Result},
     serde_json::{self, json},
+    smol::{self, Timer},
 };
 
 #[derive(Debug, Clap, TurronConfigLayer)]
@@ -34,9 +36,19 @@ pub struct PingCmd {
 impl TurronCommand for PingCmd {
     async fn execute(self) -> Result<()> {
         let start = Instant::now();
-        if !self.quiet && !self.json {
-            eprintln!("ping: {}", self.source);
-        }
+        let spinner = if self.quiet || self.json {
+            ProgressBar::hidden()
+        } else {
+            ProgressBar::new_spinner()
+        };
+        spinner.println(format!("ping: {}", self.source));
+        let spin_clone = spinner.clone();
+        let fut = smol::spawn(async move {
+            while !spin_clone.is_finished() {
+                spin_clone.tick();
+                Timer::after(Duration::from_millis(20)).await;
+            }
+        });
         let client = NuGetClient::from_source(self.source.clone()).await?;
         let time = start.elapsed().as_micros() as f32 / 1000.0;
         if !self.quiet && self.json {
@@ -49,9 +61,9 @@ impl TurronCommand for PingCmd {
             .context("Failed to serialize JSON ping output.")?;
             println!("{}", output);
         }
-        if !self.quiet && !self.json {
-            eprintln!("pong: {}ms", time);
-        }
+        spinner.println(format!("pong: {}ms", time));
+        spinner.finish();
+        fut.await;
         Ok(())
     }
 }
