@@ -6,9 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# miette = { version = "2.1.1", features = ["fancy"] }
+miette = { version = "3.0.0", features = ["fancy"] }
 # miette = { path = "../../../miette", features = ["fancy"] }
-miette = { git = "https://github.com/zkat/miette", branch = "release/3.0.0", features = ["fancy"] }
 thiserror = "1.0.26"
 chrono = { version = "0.4.19", features = ["serde"] }
 chrono-humanize = "0.2.1"

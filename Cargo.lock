@@ -449,15 +449,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ci_info"
-version = "0.14.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f0e2864372242f01b92c1b882a904f6fb8b57f16e81e148a35b6368b1ea7323"
-dependencies = [
- "envmnt",
-]
-
-[[package]]
 name = "cipher"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -871,12 +862,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
-name = "dunce"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "453440c271cf5577fd2a40e4942540cb7d0d2f85e27c8d07dd0023c925a67541"
-
-[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -906,16 +891,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80df024fbc5ac80f87dfef0d9f5209a252f2a497f7f42944cff24d8253cac065"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "envmnt"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f96dd862f12fac698dec3932dff0e6fb34bffeb5515ae5932d620cfe076571e"
-dependencies = [
- "fsio",
- "indexmap",
 ]
 
 [[package]]
@@ -979,15 +954,6 @@ checksum = "5fc25a87fa4fd2094bffb06925852034d90a17f0d1e05197d4956d3555752191"
 dependencies = [
  "matches",
  "percent-encoding",
-]
-
-[[package]]
-name = "fsio"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09e87827efaf94c7a44b562ff57de06930712fe21b530c3797cdede26e6377eb"
-dependencies = [
- "dunce",
 ]
 
 [[package]]
@@ -1295,6 +1261,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "is_ci"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "616cde7c720bb2bb5824a224687d8f77bfd38922027f01d825cd7453be5099fb"
+
+[[package]]
 name = "isahc"
 version = "0.9.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1457,13 +1429,12 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "3.0.1-alpha.0"
-source = "git+https://github.com/zkat/miette?branch=release/3.0.0#e02965787b5e6206dad46556a50edae578449789"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b98aebb9d23c72cb22c089834ea59be059c6f462e844fd9fd18dd0168ad149c"
 dependencies = [
  "atty",
  "backtrace",
- "ci_info",
- "itertools",
  "miette-derive",
  "once_cell",
  "owo-colors",
@@ -1477,8 +1448,9 @@ dependencies = [
 
 [[package]]
 name = "miette-derive"
-version = "3.0.0-alpha.0"
-source = "git+https://github.com/zkat/miette?branch=release/3.0.0#e02965787b5e6206dad46556a50edae578449789"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9a7cd3347eb52480d4ba59d71ce2b48b8b128034e17068c7e2ff3766c2e87a3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1742,9 +1714,9 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "owo-colors"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2fe43bf372b08cc9ccee5144715db59c79ab00168bbe4cf0d274dc0d5f64d7f"
+checksum = "3a61765925aec40abdb23812a3a1a01fafc6ffb9da22768b2ce665a9e84e527c"
 
 [[package]]
 name = "parking"
@@ -2458,14 +2430,12 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "supports-color"
-version = "1.0.2"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40bc06147993f379a124cc6373ad4022f5d9fd4a80019217c773f81a38e9023c"
+checksum = "32f5b0f9e689dd52e27228469dd68b7416b60d75b7571ae9060a5f4c50048fee"
 dependencies = [
  "atty",
- "ci_info",
- "lazy_static 1.4.0",
- "regex",
+ "is_ci",
 ]
 
 [[package]]
