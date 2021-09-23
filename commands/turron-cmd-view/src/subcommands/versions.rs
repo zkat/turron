@@ -6,7 +6,7 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     log,
-    turron_config::{self, TurronConfigLayer},
+    turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::{
@@ -20,6 +20,7 @@ use turron_package_spec::PackageSpec;
 use crate::error::ViewError;
 
 #[derive(Debug, Clap, TurronConfigLayer)]
+#[config_layer = "view.versions"]
 pub struct VersionsCmd {
     #[clap(about = "Package spec to look up")]
     package: String,

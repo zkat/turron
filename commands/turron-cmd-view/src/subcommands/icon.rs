@@ -3,7 +3,7 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     log,
-    turron_config::{self, TurronConfigLayer},
+    turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::miette::{Context, IntoDiagnostic, Report, Result};
@@ -13,6 +13,7 @@ use turron_semver::Range;
 use crate::error::ViewError;
 
 #[derive(Debug, Clap, TurronConfigLayer)]
+#[config_layer = "view.icon"]
 pub struct IconCmd {
     #[clap(about = "Package spec to look up")]
     package: String,

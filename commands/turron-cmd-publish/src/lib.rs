@@ -10,7 +10,7 @@ use turron_command::{
 };
 use turron_common::miette::{Context, IntoDiagnostic, Result};
 
-#[derive(Debug, Clap, TurronConfigLayer)]
+#[derive(Debug, Clap)]
 pub struct PublishCmd {
     #[clap(about = "Specific packages to publish, if not the current path")]
     nupkgs: Vec<PathBuf>,
@@ -28,6 +28,21 @@ pub struct PublishCmd {
     json: bool,
     #[clap(from_global)]
     api_key: Option<String>,
+}
+
+impl TurronConfigLayer for PublishCmd {
+    fn layer_config(
+        &mut self,
+        matches: &turron_config::ArgMatches,
+        config: &turron_config::TurronConfig,
+    ) -> Result<()> {
+        if !matches.is_present("source") {
+            if let Ok(source) = config.get_str("source") {
+                self.source = source;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[async_trait]

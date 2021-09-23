@@ -8,7 +8,7 @@ use turron_command::{
     clap::{self, Clap},
     log,
     owo_colors::{colors::*, OwoColorize},
-    turron_config::{self, TurronConfigLayer},
+    turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::{
@@ -22,6 +22,7 @@ use turron_semver::{Range, Version};
 use crate::error::ViewError;
 
 #[derive(Debug, Clap, TurronConfigLayer)]
+#[config_layer = "view.summary"]
 pub struct SummaryCmd {
     #[clap(about = "Package spec to look up")]
     package: String,

@@ -3,12 +3,13 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     log,
-    turron_config::{self, TurronConfigLayer},
+    turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::{miette::Result, thiserror::Error};
 
 #[derive(Debug, Clap, TurronConfigLayer)]
+#[config_layer = "unlist"]
 pub struct UnlistCmd {
     #[clap(about = "ID of package to unlist")]
     id: String,

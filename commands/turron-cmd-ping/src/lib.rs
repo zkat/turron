@@ -5,7 +5,7 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     log,
-    turron_config::{self, TurronConfigLayer},
+    turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::{
@@ -14,6 +14,7 @@ use turron_common::{
 };
 
 #[derive(Debug, Clap, TurronConfigLayer)]
+#[config_layer = "ping"]
 pub struct PingCmd {
     #[clap(
         about = "Source to ping",

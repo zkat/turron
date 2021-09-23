@@ -1,0 +1,8 @@
+source "https://api.nuget.org/v3/index.json"
+commands {
+    search {
+        json true
+        take 2
+        package_type "DotnetTool"
+    }
+}
