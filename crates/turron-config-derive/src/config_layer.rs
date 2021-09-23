@@ -6,27 +6,27 @@ use syn::spanned::Spanned;
 pub struct TurronConfigLayer {
     generics: syn::Generics,
     ident: syn::Ident,
-    command: String,
+    command: syn::LitStr,
     fields: Vec<ConfigField>,
 }
 
 #[derive(Debug)]
 struct ConfigField {
-    member: syn::Member,
+    name: syn::Ident,
     field_type: ConfigFieldType,
 }
 
 #[derive(Debug)]
 enum ConfigFieldType {
-    OptionOption,
-    OptionVec,
+    // OptionOption,
+    // OptionVec,
     Option,
     Plain,
-    Vec,
+    // Vec,
 }
 
 impl ConfigField {
-    fn from_field(i: usize, field: syn::Field) -> Result<Option<Self>, syn::Error> {
+    fn from_field(_i: usize, field: syn::Field) -> Result<Option<Self>, syn::Error> {
         if let Some(attr) = field.attrs.iter().find(|attr| attr.path.is_ident("clap")) {
             let meta = attr.parse_meta()?;
             if let syn::Meta::List(list) = meta {
@@ -47,38 +47,50 @@ impl ConfigField {
                     // TODO
                     let ty = &field.ty;
                     let member = if let Some(ident) = field.ident.clone() {
-                        syn::Member::Named(ident)
+                        ident
                     } else {
-                        syn::Member::Unnamed(syn::Index {
-                            index: i as u32,
-                            span: field.span(),
-                        })
+                        return Err(syn::Error::new(
+                            field.span(),
+                            "Only named structs are supported.",
+                        ));
                     };
                     if is_generic_ty(ty, "Vec") {
-                        return Ok(Some(ConfigField {
-                            member,
-                            field_type: ConfigFieldType::Vec,
-                        }));
+                        return Err(syn::Error::new(
+                            field.span(),
+                            "Vec<_> types are not supported (yet).",
+                        ));
+                        // return Ok(Some(ConfigField {
+                        //     name: member,
+                        //     field_type: ConfigFieldType::Vec,
+                        // }));
                     } else if let Some(subty) = subty_if_name(ty, "Option") {
                         if is_generic_ty(subty, "Option") {
-                            return Ok(Some(ConfigField {
-                                member,
-                                field_type: ConfigFieldType::OptionOption,
-                            }));
+                            return Err(syn::Error::new(
+                                field.span(),
+                                "Option<Option<_>> types are not supported (yet).",
+                            ));
+                            // return Ok(Some(ConfigField {
+                            //     name: member,
+                            //     field_type: ConfigFieldType::OptionOption,
+                            // }));
                         } else if is_generic_ty(subty, "Vec") {
-                            return Ok(Some(ConfigField {
-                                member,
-                                field_type: ConfigFieldType::OptionVec,
-                            }));
+                            return Err(syn::Error::new(
+                                field.span(),
+                                "Option<Vec<_>> types are not supported (yet).",
+                            ));
+                            // return Ok(Some(ConfigField {
+                            //     name: member,
+                            //     field_type: ConfigFieldType::OptionVec,
+                            // }));
                         } else {
                             return Ok(Some(ConfigField {
-                                member,
+                                name: member,
                                 field_type: ConfigFieldType::Option,
                             }));
                         }
                     } else {
                         return Ok(Some(ConfigField {
-                            member,
+                            name: member,
                             field_type: ConfigFieldType::Plain,
                         }));
                     }
@@ -100,10 +112,10 @@ impl TurronConfigLayer {
                     .attrs
                     .iter()
                     .find(|x| x.path.is_ident("config_layer"))
-                    .map(|attr| -> Result<String, syn::Error> {
+                    .map(|attr| -> Result<syn::LitStr, syn::Error> {
                         let meta = attr.parse_meta()?;
                         if let syn::Meta::NameValue(syn::MetaNameValue { lit: syn::Lit::Str(lit_str), .. }) = meta {
-                            Ok(lit_str.value())
+                            Ok(lit_str)
                         } else {
                             Err(syn::Error::new(
                                attr.span(),
@@ -145,6 +157,39 @@ impl TurronConfigLayer {
     pub fn gen(&self) -> TokenStream {
         let ident = &self.ident;
         let generics = &self.generics;
+        let sections = self.fields.iter().map(|field| {
+            let ident = &field.name;
+            let field_str = syn::LitStr::new(&format!("{}", field.name), field.name.span());
+            let scoped_field_str = syn::LitStr::new(
+                &format!("commands.{}.{}", self.command.value(), field.name),
+                field.name.span(),
+            );
+            use ConfigFieldType::*;
+            match field.field_type {
+                Plain => {
+                    quote! {
+                        if !matches.is_present(#field_str) {
+                            if let Ok(val) = config.get_str(#scoped_field_str) {
+                                self.#ident = val.parse().into_diagnostic()?;
+                            } else if let Ok(val) = config.get_str(#field_str) {
+                                self.#ident = val.parse().into_diagnostic()?;
+                            }
+                        }
+                    }
+                }
+                Option => {
+                    quote! {
+                        if !matches.is_present(#field_str) {
+                            if let Ok(val) = config.get_str(#scoped_field_str) {
+                                self.#ident = Some(val.parse().into_diagnostic()?);
+                            } else if let Ok(val) = config.get_str(#field_str) {
+                                self.#ident = Some(val.parse().into_diagnostic()?);
+                            }
+                        }
+                    }
+                }
+            }
+        });
         quote! {
             impl turron_command::turron_config::TurronConfigLayer for #ident #generics {
                 fn layer_config(
@@ -152,6 +197,8 @@ impl TurronConfigLayer {
                     matches: &turron_command::turron_config::ArgMatches,
                     config: &turron_command::turron_config::TurronConfig,
                 ) -> turron_common::miette::Result<()> {
+                    use turron_common::miette::IntoDiagnostic;
+                    #(#sections)*
                     Ok(())
                 }
             }
