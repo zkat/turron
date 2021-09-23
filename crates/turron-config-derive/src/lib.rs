@@ -14,7 +14,6 @@ pub fn derive_turron_command(input: proc_macro::TokenStream) -> proc_macro::Toke
 #[darling(supports(struct_named))]
 struct TurronConfigLayer {
     ident: syn::Ident,
-    generics: syn::Generics,
     data: ast::Data<(), TurronCommandField>,
 }
 
