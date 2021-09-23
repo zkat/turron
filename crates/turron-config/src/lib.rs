@@ -1,19 +1,19 @@
+use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 
 pub use clap::ArgMatches;
 pub use config::Config as TurronConfig;
-use config::{ConfigError, Environment, File};
+pub use config::Value as ConfigValue;
+use config::{ConfigError, Environment, Source};
+use kdl::{KdlNode, KdlValue};
 use turron_common::miette::{self, Diagnostic, Result};
 use turron_common::thiserror::{self, Error};
 
 pub use turron_config_derive::*;
 
 pub trait TurronConfigLayer {
-    fn layer_config(
-        &mut self,
-        _matches: &ArgMatches,
-        _config: &TurronConfig,
-    ) -> Result<()> {
+    fn layer_config(&mut self, _matches: &ArgMatches, _config: &TurronConfig) -> Result<()> {
         Ok(())
     }
 }
@@ -77,8 +77,12 @@ impl TurronConfigOptions {
         if self.global {
             if let Some(config_file) = self.global_config_file {
                 let path = config_file.display().to_string();
-                c.merge(File::with_name(&path[..]).required(false))
-                    .map_err(TurronConfigError::ConfigError)?;
+                if let Ok(str) = fs::read_to_string(&path[..]) {
+                    let src = kdl::parse_document(str)
+                        .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e)))?;
+                    c.merge(KdlDocument(src))
+                        .map_err(TurronConfigError::ConfigError)?;
+                }
             }
         }
         if self.env {
@@ -86,20 +90,80 @@ impl TurronConfigOptions {
                 .map_err(TurronConfigError::ConfigError)?;
         }
         if let Some(root) = self.pkg_root {
-            c.merge(File::with_name(&root.join("turronrc").display().to_string()).required(false))
-                .map_err(TurronConfigError::ConfigError)?;
-            c.merge(File::with_name(&root.join(".turronrc").display().to_string()).required(false))
-                .map_err(TurronConfigError::ConfigError)?;
-            c.merge(
-                File::with_name(&root.join("turronrc.toml").display().to_string()).required(false),
-            )
-            .map_err(TurronConfigError::ConfigError)?;
-            c.merge(
-                File::with_name(&root.join(".turronrc.toml").display().to_string()).required(false),
-            )
-            .map_err(TurronConfigError::ConfigError)?;
+            if let Ok(str) = fs::read_to_string(&root.join("turron.kdl")) {
+                let src = kdl::parse_document(str)
+                    .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e)))?;
+                c.merge(KdlDocument(src))
+                    .map_err(TurronConfigError::ConfigError)?;
+            }
+            if let Ok(str) = fs::read_to_string(&root.join(".turron.kdl")) {
+                let src = kdl::parse_document(str)
+                    .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e)))?;
+                c.merge(KdlDocument(src))
+                    .map_err(TurronConfigError::ConfigError)?;
+            }
         }
         Ok(c)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct KdlDocument(Vec<KdlNode>);
+
+impl KdlDocument {
+    fn read_kdl_val(val: &KdlValue) -> ConfigValue {
+        use KdlValue::*;
+        match val {
+            Int(x) => ConfigValue::new(None, *x),
+            Float(x) => ConfigValue::new(None, *x),
+            String(x) => ConfigValue::new(None, x.clone()),
+            Boolean(x) => ConfigValue::new(None, *x),
+            Null => None::<i64>.into(),
+        }
+    }
+
+    fn node_value(node: &KdlNode) -> ConfigValue {
+        if node.values.len() == 1 {
+            KdlDocument::read_kdl_val(&node.values[0])
+        } else if !node.values.is_empty() {
+            node.values
+                .iter()
+                .map(KdlDocument::read_kdl_val)
+                .collect::<Vec<_>>()
+                .into()
+        } else if !node.properties.is_empty() {
+            let mut inner = HashMap::new();
+            for (prop, val) in &node.properties {
+                inner.insert(prop.clone(), KdlDocument::read_kdl_val(val));
+            }
+            inner.into()
+        } else if !node.children.is_empty() {
+            KdlDocument::children_table(&node.children).into()
+        } else {
+            None::<i64>.into()
+        }
+    }
+
+    fn children_table(children: &[KdlNode]) -> HashMap<String, ConfigValue> {
+        let mut table = HashMap::new();
+        for child in children {
+            table.insert(child.name.clone(), KdlDocument::node_value(child));
+        }
+        table
+    }
+}
+
+impl Source for KdlDocument {
+    fn clone_into_box(&self) -> Box<dyn Source + Send + Sync> {
+        Box::new(self.clone())
+    }
+
+    fn collect(&self) -> Result<HashMap<String, ConfigValue>, ConfigError> {
+        let mut hash = HashMap::new();
+        for node in &self.0 {
+            hash.insert(node.name.clone(), KdlDocument::node_value(node));
+        }
+        Ok(hash)
     }
 }
 
@@ -127,8 +191,8 @@ mod tests {
     #[test]
     fn global_config() -> Result<()> {
         let dir = tempdir()?;
-        let file = dir.path().join("turronrc.toml");
-        fs::write(&file, "store = \"hello world\"")?;
+        let file = dir.path().join("turron.kdl");
+        fs::write(&file, "store \"hello world\"")?;
         let config = TurronConfigOptions::new()
             .env(false)
             .global_config_file(Some(file))
