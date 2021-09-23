@@ -1,4 +1,7 @@
-use nuget_api::v3::{NuGetClient, RegistrationIndex, RegistrationLeaf, Tags};
+use nuget_api::{
+    v3::{NuGetClient, NuSpec, RegistrationIndex, RegistrationLeaf, Tags},
+    NuGetApiError,
+};
 use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 use turron_command::{
     async_trait::async_trait,
@@ -10,7 +13,7 @@ use turron_command::{
 };
 use turron_common::{
     chrono_humanize::HumanTime,
-    miette::{Context, IntoDiagnostic, Result},
+    miette::{Context, IntoDiagnostic, Report, Result},
     serde_json,
 };
 use turron_package_spec::PackageSpec;
@@ -65,6 +68,7 @@ impl SummaryCmd {
             .find_version(client, package_id, requested, &version)
             .await
             .context("Failed to find desired version")?;
+        let nuspec = client.nuspec(package_id, &version).await?;
         if self.json && !self.quiet {
             // Just print the whole thing tbh
             println!(
@@ -74,7 +78,24 @@ impl SummaryCmd {
                     .context("Failed to stringify package data back to JSON")?
             );
         } else if !self.quiet {
-            self.print_package_details(&index, &leaf);
+            let icon = if let Some(icon) = &nuspec.metadata.icon {
+                let icon = icon.to_lowercase();
+                let data = client
+                    .get_from_nupkg(package_id, &version, &icon)
+                    .await
+                    .map_err(|err| -> Report {
+                        match err {
+                            NuGetApiError::FileNotFound(_, _, _) => {
+                                ViewError::IconNotFound(nuspec.metadata.id.clone(), version).into()
+                            }
+                            _ => err.into(),
+                        }
+                    })?;
+                Some(data)
+            } else {
+                None
+            };
+            self.print_package_details(&index, &leaf, &nuspec, icon.as_deref())?;
         }
         Ok(())
     }
@@ -109,18 +130,28 @@ impl SummaryCmd {
         Err(ViewError::VersionNotFound(package_id.into(), req.clone()).into())
     }
 
-    fn print_package_details(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {
-        self.print_header(index, leaf);
-        println!();
+    fn print_package_details(
+        &self,
+        index: &RegistrationIndex,
+        leaf: &RegistrationLeaf,
+        nuspec: &NuSpec,
+        icon: Option<&[u8]>,
+    ) -> Result<()> {
+        self.print_header(index, leaf, icon)?;
         self.print_tags(leaf);
-        println!();
         self.print_nupkg_details(leaf);
         self.print_dependencies(leaf);
-        println!();
+        self.print_readme_info(nuspec);
         self.print_publish_time(leaf);
+        Ok(())
     }
 
-    fn print_header(&self, index: &RegistrationIndex, leaf: &RegistrationLeaf) {
+    fn print_header(
+        &self,
+        index: &RegistrationIndex,
+        leaf: &RegistrationLeaf,
+        icon: Option<&[u8]>,
+    ) -> Result<()> {
         let mut total_versions = 0usize;
         for page in &index.items {
             total_versions += page.count;
@@ -156,9 +187,25 @@ impl SummaryCmd {
             }
             println!()
         }
+        if let Some(icon_data) = icon {
+            let conf = viuer::Config {
+                transparent: true,
+                absolute_offset: false,
+                height: Some(5),
+                ..Default::default()
+            };
+            let img = image::load_from_memory(icon_data)
+                .into_diagnostic()
+                .context("Failed to load image into memory")?;
+            viuer::print(&img, &conf)
+                .into_diagnostic()
+                .context("Failed to print image to terminal")?;
+        }
+        Ok(())
     }
 
     fn print_tags(&self, leaf: &RegistrationLeaf) {
+        println!();
         let entry = &leaf.catalog_entry;
         match &entry.tags {
             Some(Tags::One(tag)) => {
@@ -178,6 +225,7 @@ impl SummaryCmd {
     }
 
     fn print_nupkg_details(&self, leaf: &RegistrationLeaf) {
+        println!();
         println!("Nupkg: {}", leaf.package_content.fg::<Cyan>());
         // TODO: How tf do I get the nupkg hash?...
     }
@@ -228,6 +276,20 @@ impl SummaryCmd {
                     }
                 }
             }
+        }
+    }
+
+    fn print_readme_info(&self, nuspec: &NuSpec) {
+        println!();
+        if nuspec.metadata.readme.is_some() {
+            println!(
+                "This package includes a readme.\nUse `turron view readme {}@{} to read it",
+                nuspec.metadata.id, nuspec.metadata.version
+            );
+            println!();
+        } else {
+            println!("This package does not publish a readme.");
+            println!();
         }
     }
 
