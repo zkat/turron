@@ -35,7 +35,6 @@ turron-command = { path = "./crates/turron-command" }
 turron-common = { path = "./crates/turron-common" }
 
 # Regular deps
-directories = "3.0.1"
 tracing-subscriber = "0.2.20"
 
 [build-dependencies]

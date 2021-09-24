@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use directories::ProjectDirs;
 use turron_command::TurronCommand;
 use turron_command::{
     async_trait::async_trait,
     clap::{self, ArgMatches, Clap, FromArgMatches, IntoApp},
+    directories::ProjectDirs,
     turron_config::{TurronConfig, TurronConfigLayer, TurronConfigOptions},
 };
 use turron_common::{
