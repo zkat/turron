@@ -1,10 +1,10 @@
+use dotnet_semver::Range;
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case as tag, take_till1, take_while};
 use nom::combinator::{cut, map, map_res, opt, peek, rest};
 use nom::error::context;
 use nom::sequence::{preceded, terminated};
 use nom::IResult;
-use turron_semver::Range;
 use url::Url;
 
 use crate::error::SpecParseError;

@@ -1,4 +1,4 @@
-use turron_semver::Range;
+use dotnet_semver::Range;
 
 use nom::bytes::complete::{tag_no_case as tag, take_till1};
 use nom::combinator::{cut, map, map_res, opt};

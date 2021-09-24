@@ -2,9 +2,9 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use dotnet_semver::Range;
 use nom::combinator::all_consuming;
 use nom::Err;
-use turron_semver::Range;
 
 pub use crate::error::{PackageSpecError, SpecErrorKind};
 pub use crate::gitinfo::{GitHost, GitInfo};

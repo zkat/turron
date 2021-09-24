@@ -1,10 +1,10 @@
+use dotnet_semver::Version;
 pub use turron_common::surf::Body;
 use turron_common::{
     serde::{Deserialize, Serialize},
     serde_json,
     surf::{self, Client, Url},
 };
-use turron_semver::Version;
 
 use crate::errors::NuGetApiError;
 

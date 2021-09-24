@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use turron_semver::Range;
+use dotnet_semver::Range;
 use url::Url;
 
 use crate::error::{PackageSpecError, SpecErrorKind};

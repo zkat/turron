@@ -859,6 +859,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
+name = "dotnet-semver"
+version = "0.1.0"
+dependencies = [
+ "bytecount",
+ "nom 7.0.0",
+ "pretty_assertions",
+ "serde 1.0.130",
+ "serde_derive",
+ "serde_json",
+ "turron-common",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1605,9 +1618,9 @@ dependencies = [
 name = "nuget-api"
 version = "0.1.0"
 dependencies = [
+ "dotnet-semver",
  "serde 1.0.130",
  "turron-common",
- "turron-semver",
  "zip",
 ]
 
@@ -2961,6 +2974,7 @@ dependencies = [
 name = "turron-cmd-view"
 version = "0.1.0"
 dependencies = [
+ "dotnet-semver",
  "image",
  "nu-ansi-term",
  "nu-table",
@@ -2972,7 +2986,6 @@ dependencies = [
  "turron-common",
  "turron-package-spec",
  "turron-pick-version",
- "turron-semver",
  "viuer",
 ]
 
@@ -3036,8 +3049,8 @@ dependencies = [
 name = "turron-dotnet"
 version = "0.1.0"
 dependencies = [
+ "dotnet-semver",
  "turron-common",
- "turron-semver",
  "which",
 ]
 
@@ -3046,10 +3059,10 @@ name = "turron-package-spec"
 version = "0.1.0"
 dependencies = [
  "bytecount",
+ "dotnet-semver",
  "nom 7.0.0",
  "percent-encoding",
  "turron-common",
- "turron-semver",
  "url",
 ]
 
@@ -3057,20 +3070,7 @@ dependencies = [
 name = "turron-pick-version"
 version = "0.1.0"
 dependencies = [
- "turron-common",
- "turron-semver",
-]
-
-[[package]]
-name = "turron-semver"
-version = "0.1.0"
-dependencies = [
- "bytecount",
- "nom 7.0.0",
- "pretty_assertions",
- "serde 1.0.130",
- "serde_derive",
- "serde_json",
+ "dotnet-semver",
  "turron-common",
 ]
 

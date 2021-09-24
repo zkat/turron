@@ -1,6 +1,7 @@
 use std::io::{Cursor, Read};
 use std::sync::Arc;
 
+use dotnet_semver::Version;
 pub use turron_common::surf::Body;
 use turron_common::{
     quick_xml,
@@ -8,7 +9,6 @@ use turron_common::{
     serde_json, smol,
     surf::{self, StatusCode, Url},
 };
-use turron_semver::Version;
 use zip::ZipArchive;
 
 use crate::errors::NuGetApiError;

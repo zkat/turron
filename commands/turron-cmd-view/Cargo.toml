@@ -9,7 +9,7 @@ nuget-api = { path = "../../crates/nuget-api" }
 turron-command = { path = "../../crates/turron-command" }
 turron-common = { path = "../../crates/turron-common" }
 turron-package-spec = { path = "../../crates/turron-package-spec" }
-turron-semver = { path = "../../crates/turron-semver" }
+dotnet-semver = { path = "../../crates/dotnet-semver" }
 turron-pick-version = { path = "../../crates/turron-pick-version" }
 
 nu-table = "0.36.0"

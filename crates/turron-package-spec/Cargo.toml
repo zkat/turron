@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 turron-common = { path = "../turron-common" }
-turron-semver = { path = "../turron-semver" }
+dotnet-semver = { path = "../dotnet-semver" }
 
 url = "2.1.0"
 nom = "7.0.0"

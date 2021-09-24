@@ -123,7 +123,7 @@ pub enum NuGetApiError {
     /// File was not found in nupkg.
     #[error("File not found in .nupkg")]
     #[diagnostic(code(turron::api::file_not_found))]
-    FileNotFound(String, turron_semver::Version, String),
+    FileNotFound(String, dotnet_semver::Version, String),
 
     /// Something went wrong while reading/writing a .nupkg
     #[error(transparent)]

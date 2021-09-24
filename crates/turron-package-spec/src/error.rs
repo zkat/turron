@@ -1,9 +1,9 @@
+use dotnet_semver::SemverError;
 use nom::error::{ContextError, ErrorKind, FromExternalError, ParseError};
 use turron_common::{
     miette::{self, Diagnostic},
     thiserror::{self, Error},
 };
-use turron_semver::SemverError;
 use url::ParseError as UrlParseError;
 
 #[derive(Debug, Error)]

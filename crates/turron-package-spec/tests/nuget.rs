@@ -1,5 +1,5 @@
+use dotnet_semver::Range;
 use turron_package_spec::{PackageSpec, PackageSpecError};
-use turron_semver::Range;
 
 type Result<T> = std::result::Result<T, PackageSpecError>;
 
