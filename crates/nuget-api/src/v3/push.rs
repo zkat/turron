@@ -30,6 +30,7 @@ impl NuGetClient {
             .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?;
         let req = surf::put(&url)
             .header("X-NuGet-ApiKey", self.get_key()?)
+            .header("X-NuGet-Protocol-Version", "4.1.0")
             .header("Content-Type", "multipart/form-data; boundary=X-BOUNDARY")
             .body(body);
 

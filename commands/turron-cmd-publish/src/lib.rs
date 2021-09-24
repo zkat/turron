@@ -59,10 +59,11 @@ impl TurronCommand for PublishCmd {
             .into_diagnostic()
             .context("Failed to open provided nupkg")?;
 
-        spinner.println("Uploading nupkg...");
+        spinner.println(format!("Uploading nupkg to {}...", self.source));
 
         client.push(body).await?;
 
+        spinner.println("...package upload succeeded.");
         spinner.finish();
         spin_fut.await;
         Ok(())
