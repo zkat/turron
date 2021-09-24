@@ -1,14 +1,18 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use nuget_api::v3::{Body, NuGetClient};
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
+    indicatif::ProgressBar,
     log,
     turron_config::{self, TurronConfigLayer},
     TurronCommand,
 };
-use turron_common::miette::{Context, IntoDiagnostic, Result};
+use turron_common::{
+    miette::{Context, IntoDiagnostic, Result},
+    smol::{self, Timer},
+};
 
 #[derive(Debug, Clap)]
 pub struct PublishCmd {
@@ -48,6 +52,19 @@ impl TurronConfigLayer for PublishCmd {
 #[async_trait]
 impl TurronCommand for PublishCmd {
     async fn execute(self) -> Result<()> {
+        let spinner = if self.quiet || self.json {
+            ProgressBar::hidden()
+        } else {
+            ProgressBar::new_spinner()
+        };
+        let spin_clone = spinner.clone();
+        let spin_fut = smol::spawn(async move {
+            while !spin_clone.is_finished() {
+                spin_clone.tick();
+                Timer::after(Duration::from_millis(20)).await;
+            }
+        });
+
         let client = NuGetClient::from_source(self.source.clone())
             .await?
             .with_key(self.api_key);
@@ -55,7 +72,13 @@ impl TurronCommand for PublishCmd {
             .await
             .into_diagnostic()
             .context("Failed to open provided nupkg")?;
+
+        spinner.println("Uploading nupkg...");
+
         client.push(body).await?;
+
+        spinner.finish();
+        spin_fut.await;
         Ok(())
     }
 }
