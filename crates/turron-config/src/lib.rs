@@ -24,9 +24,9 @@ pub enum TurronConfigError {
     #[diagnostic(code(config::error))]
     ConfigError(#[from] ConfigError),
 
-    #[error(transparent)]
+    #[error("Error while parsing config file at {1}:\n\t{0}")]
     #[diagnostic(code(config::parse_error))]
-    ConfigParseError(#[from] Box<dyn std::error::Error + Send + Sync>),
+    ConfigParseError(Box<dyn std::error::Error + Send + Sync>, String),
 }
 
 pub struct TurronConfigOptions {
@@ -79,7 +79,7 @@ impl TurronConfigOptions {
                 let path = config_file.display().to_string();
                 if let Ok(str) = fs::read_to_string(&path[..]) {
                     let src = kdl::parse_document(str)
-                        .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e)))?;
+                        .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e), path))?;
                     c.merge(KdlDocument(src))
                         .map_err(TurronConfigError::ConfigError)?;
                 }
@@ -91,14 +91,15 @@ impl TurronConfigOptions {
         }
         if let Some(root) = self.pkg_root {
             if let Ok(str) = fs::read_to_string(&root.join("turron.kdl")) {
-                let src = kdl::parse_document(str)
-                    .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e)))?;
+                let src = kdl::parse_document(str).map_err(|e| {
+                    TurronConfigError::ConfigParseError(Box::new(e), root.display().to_string())
+                })?;
                 c.merge(KdlDocument(src))
                     .map_err(TurronConfigError::ConfigError)?;
             }
             if let Ok(str) = fs::read_to_string(&root.join(".turron.kdl")) {
                 let src = kdl::parse_document(str)
-                    .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e)))?;
+                    .map_err(|e| TurronConfigError::ConfigParseError(Box::new(e), root.display().to_string()))?;
                 c.merge(KdlDocument(src))
                     .map_err(TurronConfigError::ConfigError)?;
             }
