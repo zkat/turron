@@ -1,7 +1,6 @@
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
-    log,
     turron_config::TurronConfigLayer,
     TurronCommand,
 };
@@ -10,8 +9,6 @@ use turron_common::miette::Result;
 #[derive(Debug, Clap, TurronConfigLayer)]
 #[config_layer = "pack"]
 pub struct PackCmd {
-    #[clap(from_global)]
-    loglevel: log::LevelFilter,
     #[clap(from_global)]
     quiet: bool,
     #[clap(from_global)]

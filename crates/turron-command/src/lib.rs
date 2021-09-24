@@ -4,9 +4,9 @@ use turron_common::miette::Result;
 pub use async_trait;
 pub use clap;
 pub use indicatif;
-pub use log;
 pub use owo_colors;
 pub use turron_config;
+pub use tracing;
 
 #[async_trait::async_trait]
 pub trait TurronCommand {

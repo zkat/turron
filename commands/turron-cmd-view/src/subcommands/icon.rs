@@ -2,7 +2,6 @@ use nuget_api::{v3::NuGetClient, NuGetApiError};
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
-    log,
     turron_config::TurronConfigLayer,
     TurronCommand,
 };
@@ -29,8 +28,6 @@ pub struct IconCmd {
         long
     )]
     source: String,
-    #[clap(from_global)]
-    loglevel: log::LevelFilter,
     #[clap(from_global)]
     quiet: bool,
     #[clap(from_global)]

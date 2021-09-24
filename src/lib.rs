@@ -1,4 +1,3 @@
-use std::env;
 use std::path::PathBuf;
 
 use directories::ProjectDirs;
@@ -6,10 +5,10 @@ use turron_command::TurronCommand;
 use turron_command::{
     async_trait::async_trait,
     clap::{self, ArgMatches, Clap, FromArgMatches, IntoApp},
-    log,
+    tracing,
     turron_config::{TurronConfig, TurronConfigLayer, TurronConfigOptions},
 };
-use turron_common::miette::{Context, IntoDiagnostic, Result};
+use turron_common::miette::{Context, Result};
 
 use turron_cmd_pack::PackCmd;
 use turron_cmd_ping::PingCmd;
@@ -36,11 +35,12 @@ pub struct Turron {
     config: Option<PathBuf>,
     #[clap(
         global = true,
-        about = "Log output level (off, error, warn, info, debug, trace)",
+        about = "Log verbosity level (off, error, warn, info, debug, trace)",
         long,
+        short,
         default_value = "warn"
     )]
-    loglevel: log::LevelFilter,
+    verbosity: tracing::Level,
     #[clap(global = true, about = "Disable all output", long, short = 'q')]
     quiet: bool,
     #[clap(global = true, long, about = "Format output as JSON.")]
@@ -57,36 +57,22 @@ pub struct Turron {
 }
 
 impl Turron {
-    fn setup_logging(&self) -> std::result::Result<(), fern::InitError> {
-        let fern = fern::Dispatch::new()
-            .format(|out, message, record| {
-                out.finish(format_args!(
-                    "turron [{}][{}] {}",
-                    record.level(),
-                    record.target(),
-                    message,
-                ))
-            })
-            .chain(
-                fern::Dispatch::new()
-                    .level(if self.quiet {
-                        log::LevelFilter::Off
-                    } else {
-                        self.loglevel
-                    })
-                    .chain(std::io::stderr()),
-            );
-        // TODO: later
-        // if let Some(logfile) = ProjectDirs::from("", "", "turron")
-        //     .map(|d| d.data_dir().to_owned().join(format!("turron-debug-{}.log", chrono::Local::now().to_rfc3339())))
-        // {
-        //     fern = fern.chain(
-        //         fern::Dispatch::new()
-        //         .level(log::LevelFilter::Trace)
-        //         .chain(fern::log_file(logfile)?)
-        //     )
-        // }
-        fern.apply()?;
+    fn setup_logging(&self) -> Result<()> {
+        let mut collector = tracing_subscriber::fmt()
+            .with_writer(std::io::stderr)
+            .without_time();
+        if self.quiet {
+            collector = collector.with_max_level(tracing_subscriber::filter::LevelFilter::OFF);
+        } else {
+            collector = collector.with_max_level(self.verbosity);
+        }
+        // TODO: Switch to try_init (ugh, `Box<dyn Error>` issues)
+        if self.json {
+            collector.json().init();
+        } else {
+            collector.init();
+        }
+
         Ok(())
     }
 
@@ -109,12 +95,9 @@ impl Turron {
                 .load()?
         };
         turron.layer_config(&matches, &cfg)?;
-        turron
-            .setup_logging()
-            .into_diagnostic()
-            .context("Failed to set up logging")?;
+        turron.setup_logging().context("Failed to set up logging")?;
         turron.execute().await?;
-        log::info!("Ran in {}s", start.elapsed().as_millis() as f32 / 1000.0);
+        tracing::info!("Ran in {}s", start.elapsed().as_millis() as f32 / 1000.0);
         Ok(())
     }
 }
@@ -175,7 +158,7 @@ pub enum TurronCmd {
 #[async_trait]
 impl TurronCommand for Turron {
     async fn execute(self) -> Result<()> {
-        log::info!("Running command: {:#?}", self.subcommand);
+        tracing::debug!("Running command: {:#?}", self.subcommand);
         match self.subcommand {
             TurronCmd::Pack(pack) => pack.execute().await,
             TurronCmd::Ping(ping) => ping.execute().await,

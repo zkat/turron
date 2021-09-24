@@ -6,7 +6,6 @@ use term_grid::{Cell, Direction, Filling, Grid, GridOptions};
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
-    log,
     owo_colors::{colors::*, OwoColorize},
     turron_config::TurronConfigLayer,
     TurronCommand,
@@ -32,8 +31,6 @@ pub struct SummaryCmd {
         long
     )]
     source: String,
-    #[clap(from_global)]
-    loglevel: log::LevelFilter,
     #[clap(from_global)]
     quiet: bool,
     #[clap(from_global)]

@@ -1,7 +1,7 @@
 use turron_command::{
     async_trait::async_trait,
     clap::{self, ArgMatches, Clap},
-    log,
+    tracing,
     turron_config::{TurronConfig, TurronConfigLayer},
     TurronCommand,
 };
@@ -56,7 +56,7 @@ pub struct ViewCmd {
 #[async_trait]
 impl TurronCommand for ViewCmd {
     async fn execute(self) -> Result<()> {
-        log::info!("Running command: {:#?}", self.subcommand);
+        tracing::debug!("Running command: {:#?}", self.subcommand);
         match self.subcommand {
             ViewSubCmd::Summary(summary) => summary.execute().await,
             ViewSubCmd::Readme(readme) => readme.execute().await,

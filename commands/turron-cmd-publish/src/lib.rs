@@ -5,7 +5,7 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     indicatif::ProgressBar,
-    log,
+    tracing,
     turron_config::{self, TurronConfigLayer},
     TurronCommand,
 };
@@ -25,7 +25,7 @@ pub struct PublishCmd {
     )]
     source: String,
     #[clap(from_global)]
-    loglevel: log::LevelFilter,
+    verbosity: tracing::Level,
     #[clap(from_global)]
     quiet: bool,
     #[clap(from_global)]

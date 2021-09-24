@@ -6,7 +6,6 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     indicatif::ProgressBar,
-    log,
     turron_config::TurronConfigLayer,
     TurronCommand,
 };
@@ -27,8 +26,6 @@ pub struct SearchCmd {
         long
     )]
     source: String,
-    #[clap(from_global)]
-    loglevel: log::LevelFilter,
     #[clap(from_global)]
     quiet: bool,
     #[clap(from_global)]

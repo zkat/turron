@@ -10,7 +10,7 @@ turron-common = { path = "../turron-common" }
 # Re-exports, a la "turron-common", but stuff that commands use a lot.
 async-trait = "0.1.19"
 clap = { git = "https://github.com/zkat/clap" }
-log = "0.4.11"
 turron-config = { path = "../../crates/turron-config" }
 owo-colors = "2.0.0"
 indicatif = { version = "0.16.2" }
+tracing = "0.1.28"
