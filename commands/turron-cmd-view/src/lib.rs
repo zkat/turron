@@ -1,11 +1,10 @@
 use turron_command::{
     async_trait::async_trait,
     clap::{self, ArgMatches, Clap},
-    tracing,
     turron_config::{TurronConfig, TurronConfigLayer},
     TurronCommand,
 };
-use turron_common::miette::Result;
+use turron_common::{miette::Result, tracing};
 
 use subcommands::{IconCmd, ReadmeCmd, SummaryCmd, VersionsCmd};
 

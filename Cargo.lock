@@ -2986,7 +2986,6 @@ dependencies = [
  "directories 4.0.1",
  "indicatif",
  "owo-colors",
- "tracing",
  "turron-common",
  "turron-config",
 ]
@@ -3006,6 +3005,7 @@ dependencies = [
  "smol",
  "surf",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]

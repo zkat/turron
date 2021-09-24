@@ -8,7 +8,6 @@ pub use directories;
 pub use indicatif;
 pub use owo_colors;
 pub use turron_config;
-pub use tracing;
 
 #[async_trait::async_trait]
 pub trait TurronCommand {

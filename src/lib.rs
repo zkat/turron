@@ -5,10 +5,12 @@ use turron_command::TurronCommand;
 use turron_command::{
     async_trait::async_trait,
     clap::{self, ArgMatches, Clap, FromArgMatches, IntoApp},
-    tracing,
     turron_config::{TurronConfig, TurronConfigLayer, TurronConfigOptions},
 };
-use turron_common::miette::{Context, Result};
+use turron_common::{
+    miette::{Context, Result},
+    tracing,
+};
 
 use turron_cmd_login::LoginCmd;
 use turron_cmd_pack::PackCmd;

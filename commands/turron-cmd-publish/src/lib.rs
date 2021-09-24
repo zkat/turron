@@ -5,13 +5,13 @@ use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
     indicatif::ProgressBar,
-    tracing,
     turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::{
     miette::{Context, IntoDiagnostic, Result},
     smol::{self, Timer},
+    tracing,
 };
 
 #[derive(Debug, Clap, TurronConfigLayer)]

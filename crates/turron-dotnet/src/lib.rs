@@ -16,6 +16,10 @@ pub async fn pack() -> Result<(), DotnetError> {
         .output()
         .await?;
     if output.status.success() {
+        let stdout = String::from_utf8(output.stdout).unwrap_or_else(|_| "".into());
+        for line in stdout.lines() {
+            println!("{}", line);
+        }
         Ok(())
     } else {
         // TODO: handle bad utf8 errors
