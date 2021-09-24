@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use nu_table::{draw_table, StyledString, Table, TextStyle, Theme};
 use nuget_api::v3::{NuGetClient, SearchQuery};
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
+    indicatif::ProgressBar,
     log,
     turron_config::TurronConfigLayer,
     TurronCommand,
@@ -12,6 +13,7 @@ use turron_command::{
 use turron_common::{
     miette::{Context, IntoDiagnostic, Result},
     serde_json,
+    smol::{self, Timer},
 };
 
 #[derive(Debug, Clap, TurronConfigLayer)]
@@ -44,6 +46,19 @@ pub struct SearchCmd {
 #[async_trait]
 impl TurronCommand for SearchCmd {
     async fn execute(self) -> Result<()> {
+        let spinner = if self.quiet || self.json {
+            ProgressBar::hidden()
+        } else {
+            ProgressBar::new_spinner()
+        };
+        let spin_clone = spinner.clone();
+        let spin_fut = smol::spawn(async move {
+            while !spin_clone.is_finished() {
+                spin_clone.tick();
+                Timer::after(Duration::from_millis(20)).await;
+            }
+        });
+
         let client = NuGetClient::from_source(self.source.clone()).await?;
 
         let query = SearchQuery {
@@ -55,6 +70,9 @@ impl TurronCommand for SearchCmd {
         };
 
         let response = client.search(query).await?;
+
+        spinner.finish();
+        spin_fut.await;
 
         if !self.quiet && self.json {
             println!(
