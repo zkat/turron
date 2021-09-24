@@ -15,3 +15,5 @@ Cargo.lock
 *.pdb
 
 /.vscode
+# Used for, say, test packages
+/tmp
