@@ -1,5 +1,5 @@
 use turron_common::{
-    miette::{self, Diagnostic, Report},
+    miette::{self, Diagnostic, LabeledSpan, NamedSource, Severity, SourceSpan},
     thiserror::{self, Error},
 };
 
@@ -16,23 +16,50 @@ pub enum DotnetError {
     #[diagnostic(code(turron::dotnet::cli_failed))]
     DotnetFailed(#[from] std::io::Error),
 
-    #[error("Pack failed.\n{}", .0.iter().map(|e| format!("{:?}", Report::from(e.clone()))).collect::<Vec<_>>().join("\n"))]
+    #[error("Pack failed.")]
     #[diagnostic(code(turron::dotnet::pack_failed))]
-    PackFailed(Vec<MsBuildError>),
+    PackFailed(#[related] Vec<MsBuildError>),
 }
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug)]
 #[error("{message}")]
 pub struct MsBuildError {
-    pub file: String,
-    pub line: Option<usize>,
-    pub column: Option<usize>,
+    pub file: NamedSource,
+    pub span: SourceSpan,
     pub code: String,
     pub message: String,
+    pub severity: Severity,
 }
 
 impl Diagnostic for MsBuildError {
     fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         Some(Box::new(&self.code))
+    }
+
+    fn severity(&self) -> Option<miette::Severity> {
+        Some(self.severity)
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        None
+    }
+
+    fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        None
+    }
+
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.file)
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+        Some(Box::new(std::iter::once(LabeledSpan::new_with_span(
+            Some("here".into()),
+            self.span.clone(),
+        ))))
+    }
+
+    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+        None
     }
 }
