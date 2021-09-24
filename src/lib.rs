@@ -89,7 +89,7 @@ impl Turron {
             TurronConfigOptions::new()
                 .global_config_file(
                     ProjectDirs::from("", "", "turron")
-                        .map(|d| d.config_dir().to_owned().join("turronrc.toml")),
+                        .map(|d| d.config_dir().to_owned().join("turron.kdl")),
                 )
                 .pkg_root(turron.root.clone())
                 .load()?
