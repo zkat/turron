@@ -41,44 +41,6 @@ pub struct SearchCmd {
     package_type: Option<String>,
 }
 
-// impl TurronConfigLayer for SearchCmd {
-//     fn layer_config(
-//         &mut self,
-//         matches: &turron_config::ArgMatches,
-//         config: &turron_config::TurronConfig,
-//     ) -> Result<()> {
-//         if !matches.is_present("source") {
-//             if let Ok(source) = config.get_str("commands.search.source") {
-//                 self.source = source;
-//             } else if let Ok(source) = config.get_str("source") {
-//                 self.source = source;
-//             }
-//         }
-//         if !matches.is_present("json") {
-//             if let Ok(json) = config.get_bool("commands.search.json") {
-//                 self.json = json;
-//             } else if let Ok(json) = config.get_bool("json") {
-//                 self.json = json;
-//             }
-//         }
-//         if !matches.is_present("take") {
-//             if let Ok(take) = config.get_str("commands.search.take") {
-//                 self.take = Some(take.parse().into_diagnostic()?);
-//             } else if let Ok(take) = config.get_str("take") {
-//                 self.take = Some(take.parse().into_diagnostic()?);
-//             }
-//         }
-//         if !matches.is_present("package_type") {
-//             if let Ok(val) = config.get_str("commands.search.package_type") {
-//                 self.package_type = Some(val.parse().into_diagnostic()?);
-//             } else if let Ok(val) = config.get_str("package_type") {
-//                 self.package_type = Some(val.parse().into_diagnostic()?);
-//             }
-//         }
-//         Ok(())
-//     }
-// }
-
 #[async_trait]
 impl TurronCommand for SearchCmd {
     async fn execute(self) -> Result<()> {
