@@ -1,7 +1,7 @@
 use turron_command::{
     async_trait::async_trait,
     clap::{self, Clap},
-    dialoguer::Input,
+    dialoguer::{Confirm, Input},
     directories::ProjectDirs,
     turron_config::TurronConfigLayer,
     TurronCommand,
@@ -16,18 +16,8 @@ use turron_common::{
 };
 
 #[derive(Debug, Clap, TurronConfigLayer)]
-#[config_layer = "ping"]
+#[config_layer = "login"]
 pub struct LoginCmd {
-    #[clap(
-        about = "Source to ping",
-        default_value = "https://api.nuget.org/v3/index.json",
-        long
-    )]
-    source: String,
-    #[clap(from_global)]
-    quiet: bool,
-    #[clap(from_global)]
-    json: bool,
     #[clap(from_global)]
     api_key: Option<String>,
 }
@@ -35,6 +25,20 @@ pub struct LoginCmd {
 #[async_trait]
 impl TurronCommand for LoginCmd {
     async fn execute(self) -> Result<()> {
+        if self.api_key.is_some() {
+            let confirm = smol::unblock(|| -> Result<bool> {
+                Confirm::new()
+                    .with_prompt("You already have an API key configured. Continue?")
+                    .default(true)
+                    .interact()
+                    .into_diagnostic()
+            })
+            .await?;
+            if !confirm {
+                return Ok(());
+            }
+        }
+
         let key = smol::unblock(|| -> Result<String> {
             Input::new()
                 .with_prompt("Please paste an API token generated from https://www.nuget.org/account/apikeys")
