@@ -2,6 +2,7 @@ use turron_common::{
     miette::{NamedSource, Severity, SourceOffset},
     regex::Regex,
     smol::{self, fs, process::Command},
+    tracing,
 };
 
 pub use errors::{DotnetError, MsBuildError};
@@ -18,7 +19,7 @@ pub async fn pack() -> Result<(), DotnetError> {
     if output.status.success() {
         let stdout = String::from_utf8(output.stdout).unwrap_or_else(|_| "".into());
         for line in stdout.lines() {
-            println!("{}", line);
+            tracing::info!("{}", line);
         }
         Ok(())
     } else {
@@ -53,7 +54,7 @@ pub async fn pack() -> Result<(), DotnetError> {
                     },
                 });
             } else {
-                println!("{}", line);
+                tracing::info!("{}", line);
             }
         }
         Err(DotnetError::PackFailed(errors))
