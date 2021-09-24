@@ -36,7 +36,7 @@ impl TurronCommand for UnlistCmd {
             .with_key(self.api_key);
         client.unlist(self.id.clone(), self.version.clone()).await?;
         if !self.quiet {
-            println!("{}@{} has been unlisted.", self.id, self.version);
+            println!("{}@{} has been unlisted. This may take several hours to process.", self.id, self.version);
         }
         Ok(())
     }

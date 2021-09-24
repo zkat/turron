@@ -1,4 +1,4 @@
-use turron_common::surf::{self, StatusCode};
+use turron_common::surf::{self, StatusCode, Url};
 
 use crate::errors::NuGetApiError;
 use crate::v3::NuGetClient;
@@ -15,6 +15,8 @@ impl NuGetClient {
             .publish
             .clone()
             .ok_or_else(|| UnsupportedEndpoint("PackagePublish/2.0.0".into()))?;
+
+        let url = Url::parse(&format!("{}/{}/{}", url, package_id.as_ref(), version.as_ref()))?;
 
         let req = surf::post(url.join(package_id.as_ref())?.join(version.as_ref())?)
             .header("X-NuGet-ApiKey", self.get_key()?);
