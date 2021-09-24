@@ -6,7 +6,7 @@ use turron_command::{
     clap::{self, Clap},
     indicatif::ProgressBar,
     tracing,
-    turron_config::{self, TurronConfigLayer},
+    turron_config::TurronConfigLayer,
     TurronCommand,
 };
 use turron_common::{
@@ -14,7 +14,8 @@ use turron_common::{
     smol::{self, Timer},
 };
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Clap, TurronConfigLayer)]
+#[config_layer = "publish"]
 pub struct PublishCmd {
     #[clap(about = "Specific packages to publish, if not the current path")]
     nupkgs: Vec<PathBuf>,
@@ -32,21 +33,6 @@ pub struct PublishCmd {
     json: bool,
     #[clap(from_global)]
     api_key: Option<String>,
-}
-
-impl TurronConfigLayer for PublishCmd {
-    fn layer_config(
-        &mut self,
-        matches: &turron_config::ArgMatches,
-        config: &turron_config::TurronConfig,
-    ) -> Result<()> {
-        if !matches.is_present("source") {
-            if let Ok(source) = config.get_str("source") {
-                self.source = source;
-            }
-        }
-        Ok(())
-    }
 }
 
 #[async_trait]
